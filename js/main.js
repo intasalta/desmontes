@@ -3,40 +3,42 @@ let geojsonData = null;
 let statsData = [];
 let map, geojsonLayer, myChart;
 
-// 1. Cargar datos con diagnóstico detallado
+// 1. Cargar datos con fallback de rutas para GitHub Pages
 async function loadData() {
     try {
-        const geoResponse = await fetch('./data/departamentos.geojson');
-        const statsResponse = await fetch('./data/desmonte_stats.json');
+        let geoResponse, statsResponse;
+
+        // Probar primero la ruta relativa local y si falla probar ruta relativa simple
+        geoResponse = await fetch('./data/departamentos.geojson');
+        if (!geoResponse.ok) {
+            geoResponse = await fetch('data/departamentos.geojson');
+        }
+
+        statsResponse = await fetch('./data/desmonte_stats.json');
+        if (!statsResponse.ok) {
+            statsResponse = await fetch('data/desmonte_stats.json');
+        }
 
         if (!geoResponse.ok) {
-            throw new Error(`No se encontró './data/departamentos.geojson' (HTTP ${geoResponse.status})`);
+            throw new Error(`No se pudo cargar 'departamentos.geojson' (Status HTTP ${geoResponse.status})`);
         }
         if (!statsResponse.ok) {
-            throw new Error(`No se encontró './data/desmonte_stats.json' (HTTP ${statsResponse.status})`);
+            throw new Error(`No se pudo cargar 'desmonte_stats.json' (Status HTTP ${statsResponse.status})`);
         }
 
-        // Intento de parseo de JSON
-        try {
-            geojsonData = await geoResponse.json();
-        } catch (e) {
-            throw new Error("El archivo 'data/departamentos.geojson' NO es un JSON válido. Asegúrate de borrar 'const ... =' si existe en la primera línea.");
-        }
+        geojsonData = await geoResponse.json();
+        statsData = await statsResponse.json();
 
-        try {
-            statsData = await statsResponse.json();
-        } catch (e) {
-            throw new Error("El archivo 'data/desmonte_stats.json' NO es un JSON válido. Asegúrate de borrar 'const ... =' si existe en la primera línea.");
-        }
-
-        // Inicializar la aplicación
+        // Inicializar la aplicación cuando los datos estén listos
         initApp();
+
     } catch (error) {
         console.error("Error al cargar datos:", error);
         const tbody = document.getElementById('table-body');
         if (tbody) {
             tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#ef4444; padding: 20px;">
-                <strong>Error de carga:</strong> ${error.message}
+                <strong>Error de carga:</strong> ${error.message}<br/>
+                <small>Verifica que la carpeta 'data' contenga los archivos 'departamentos.geojson' y 'desmonte_stats.json'.</small>
             </td></tr>`;
         }
     }
@@ -100,11 +102,10 @@ function formatNumber(num) {
     return num.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-// 3. Inicializar Mapa Leaflet con capa funcional
+// 3. Inicializar Mapa Leaflet con tiles funcionales
 function initMap() {
     map = L.map('map').setView([-24.5, -62.0], 6);
     
-    // Cambiado a CartoDB Positron (reemplazo gratuito y estable)
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
         subdomains: 'abcd',
@@ -234,7 +235,6 @@ function updateMapHighlight(prov, dpto) {
     geojsonLayer.eachLayer(layer => {
         const props = layer.feature.properties;
         
-        // Incluye props.Prov para que coincida con la propiedad 'Prov' de departamentos.geojson
         const layerProv = props.fna || props.provincia || props.Prov || '';
         const layerDpto = props.nam || props.departament || props.dpto || '';
 
@@ -259,4 +259,9 @@ function updateMapHighlight(prov, dpto) {
     }
 }
 
-window.onload = loadData;
+// Ejecución directa asegurada sin depender únicamente de window.onload
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadData);
+} else {
+    loadData();
+}
