@@ -2,6 +2,34 @@ let geojsonData = null;
 let statsData = [];
 let map, geojsonLayer, myChart;
 
+// ==========================================
+// FUNCIONES PARA CONTROLAR EL PANTALLAZO DE CARGA
+// ==========================================
+
+function hideLoader() {
+    const loader = document.getElementById('loading-overlay');
+    if (loader) {
+        loader.classList.add('loader-hidden');
+    }
+}
+
+function showErrorInLoader(message) {
+    const loader = document.getElementById('loading-overlay');
+    if (loader) {
+        loader.innerHTML = `
+            <div style="text-align: center; max-width: 400px; padding: 20px;">
+                <i class="fa-solid fa-circle-exclamation" style="font-size: 3rem; color: #ef4444; margin-bottom: 1rem;"></i>
+                <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem;">Error de Carga</h2>
+                <p style="font-size: 0.875rem; color: #cbd5e1;">${message}</p>
+            </div>
+        `;
+    }
+}
+
+// ==========================================
+// CARGA DE DATOS E INICIALIZACIÓN
+// ==========================================
+
 async function loadData() {
     try {
         let geoResponse = await fetch('./data/departamentos.geojson');
@@ -11,21 +39,23 @@ async function loadData() {
         if (!statsResponse.ok) statsResponse = await fetch('data/desmonte_stats.json');
 
         if (!geoResponse.ok || !statsResponse.ok) {
-            throw new Error("No se pudieron cargar las fuentes JSON/GeoJSON.");
+            throw new Error("No se pudieron cargar los archivos de datos (JSON/GeoJSON).");
         }
 
         geojsonData = await geoResponse.json();
         statsData = await statsResponse.json();
 
+        // Inicializar mapas, gráficos y tablas
         initApp();
+
+        // ---> AQUÍ SE OCULTA EL CARGADOR CUANDO TODO YA ESTÁ LISTO <---
+        hideLoader();
+
     } catch (error) {
         console.error("Error al cargar datos:", error);
-        const tbody = document.getElementById('table-body');
-        if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#ef4444; padding: 20px;">
-                <strong>Error al cargar los datos:</strong> ${error.message}
-            </td></tr>`;
-        }
+        
+        // ---> SI HAY UN ERROR, SE MUESTRA EN EL CARTEL FLOTANTE <---
+        showErrorInLoader(error.message);
     }
 }
 
