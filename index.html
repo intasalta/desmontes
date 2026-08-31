@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard de Monitoreo de Desmonte</title>
-    
+
     <!-- Leaflet & Chart.js -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
+
     <!-- Font Awesome & Google Fonts -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -20,7 +20,7 @@
             --bg-card: #ffffff;
             --text-primary: #0f172a;
             --text-secondary: #475569;
-            --accent-primary: #2563eb;
+            --accent-primary: #ef4444;
             --border-color: #e2e8f0;
             --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
             --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
@@ -29,7 +29,7 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', sans-serif; background-color: var(--bg-main); color: var(--text-primary); min-height: 100vh; display: flex; flex-direction: column; }
+        body { font-family: 'Inter', system-ui, sans-serif; background-color: var(--bg-main); color: var(--text-primary); min-height: 100vh; display: flex; flex-direction: column; }
 
         header {
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
@@ -53,7 +53,7 @@
             gap: 1.5rem;
             align-items: center;
         }
-        .control-group { display: flex; flex-direction: column; gap: 0.35rem; }
+        .control-group { display: flex; flex-direction: column; gap: 0.35rem; flex: 1; min-width: 180px; }
         .control-group label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); }
 
         select {
@@ -65,24 +65,8 @@
             font-size: 0.9rem;
             font-weight: 500;
             outline: none;
-            min-width: 180px;
+            width: 100%;
         }
-
-        .reset-btn {
-            margin-left: auto;
-            padding: 0.5rem 1rem;
-            background-color: #f1f5f9;
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .reset-btn:hover { background-color: #e2e8f0; color: var(--text-primary); }
 
         .dashboard-container {
             padding: 1.5rem 2rem;
@@ -104,19 +88,14 @@
             padding: 1.25rem;
             border: 1px solid var(--border-color);
             box-shadow: var(--shadow-sm);
+            border-left: 5px solid var(--accent-primary);
             display: flex;
             align-items: center;
             gap: 1rem;
         }
-        .kpi-icon { width: 50px; height: 50px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
-        .kpi-icon.area { background-color: #fef2f2; color: #ef4444; }
-        .kpi-icon.prov { background-color: #eff6ff; color: #3b82f6; }
-        .kpi-icon.dpto { background-color: #f0fdf4; color: #10b981; }
-        .kpi-icon.period { background-color: #faf5ff; color: #a855f7; }
 
         .kpi-content h3 { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 0.25rem; }
-        .kpi-content .value { font-size: 1.35rem; font-weight: 700; color: var(--text-primary); }
-        .kpi-content .unit { font-size: 0.8rem; color: var(--text-secondary); }
+        .kpi-content .value { font-size: 1.6rem; font-weight: 800; color: #b91c1c; }
 
         .card {
             background-color: var(--bg-card);
@@ -127,12 +106,11 @@
             flex-direction: column;
             overflow: hidden;
         }
-        .card-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
-        .card-header h2 { font-size: 1rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
-        .card-body { padding: 1rem; flex: 1; position: relative; min-height: 420px; }
+        .card-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border-color); font-size: 1rem; font-weight: 600; }
+        .card-body { padding: 1rem; flex: 1; position: relative; min-height: 400px; }
 
         #map { width: 100%; height: 100%; border-radius: var(--radius-md); z-index: 1; }
-        .chart-container { position: relative; width: 100%; height: 100%; min-height: 400px; }
+        .chart-container { position: relative; width: 100%; height: 100%; min-height: 380px; }
 
         .table-section { grid-column: 1 / -1; }
         .table-wrapper { overflow-x: auto; max-height: 350px; overflow-y: auto; }
@@ -141,7 +119,7 @@
         td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); }
         tr:hover { background-color: #f1f5f9; }
 
-        @media (max-width: 1024px) { .dashboard-container { grid-template-columns: 1fr; } }
+        @media (max-width: 900px) { .dashboard-container { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
@@ -153,112 +131,72 @@
         </div>
     </header>
 
+    <!-- Controles con los IDs que busca tu main.js -->
     <div class="controls-bar">
         <div class="control-group">
-            <label for="select-prov">Provincia</label>
-            <select id="select-prov" onchange="onFilterChange()">
-                <option value="ALL">Todas las Provincias</option>
+            <label for="prov-select">Provincia</label>
+            <select id="prov-select">
+                <option value="ALL">Todas las provincias</option>
             </select>
         </div>
 
         <div class="control-group">
-            <label for="select-dpto">Departamento</label>
-            <select id="select-dpto" onchange="onFilterChange()">
-                <option value="ALL">Todos los Departamentos</option>
+            <label for="dpto-select">Departamento</label>
+            <select id="dpto-select">
+                <option value="ALL">Todos los departamentos</option>
             </select>
         </div>
 
         <div class="control-group">
-            <label for="select-period">Período / Etiqueta</label>
-            <select id="select-period" onchange="onFilterChange()">
-                <option value="ALL">Todos los Períodos (Acumulado)</option>
+            <label for="period-select">Período</label>
+            <select id="period-select">
+                <option value="ALL">Todos los períodos</option>
             </select>
         </div>
-
-        <button class="reset-btn" onclick="resetFilters()">
-            <i class="fa-solid fa-rotate-right"></i> Restablecer Filtros
-        </button>
     </div>
 
     <div class="dashboard-container">
 
-        <!-- KPI Cards -->
+        <!-- KPI Card adaptado a tu main.js -->
         <div class="kpi-row">
             <div class="kpi-card">
-                <div class="kpi-icon area"><i class="fa-solid fa-chart-area"></i></div>
                 <div class="kpi-content">
-                    <h3>Superficie Total</h3>
-                    <div class="value" id="kpi-total-area">0</div>
-                    <div class="unit">hectáreas (ha)</div>
-                </div>
-            </div>
-
-            <div class="kpi-card">
-                <div class="kpi-icon prov"><i class="fa-solid fa-map"></i></div>
-                <div class="kpi-content">
-                    <h3>Provincias Select.</h3>
-                    <div class="value" id="kpi-prov-count">0</div>
-                    <div class="unit">en el filtro activo</div>
-                </div>
-            </div>
-
-            <div class="kpi-card">
-                <div class="kpi-icon dpto"><i class="fa-solid fa-location-dot"></i></div>
-                <div class="kpi-content">
-                    <h3>Departamentos</h3>
-                    <div class="value" id="kpi-dpto-count">0</div>
-                    <div class="unit">con registros</div>
-                </div>
-            </div>
-
-            <div class="kpi-card">
-                <div class="kpi-icon period"><i class="fa-solid fa-calendar-days"></i></div>
-                <div class="kpi-content">
-                    <h3>Pico de Desmonte</h3>
-                    <div class="value" id="kpi-max-period">-</div>
-                    <div class="unit" id="kpi-max-period-val">0 ha</div>
+                    <h3>Total Área Desmontada</h3>
+                    <div class="value" id="kpi-total">0,00 ha</div>
                 </div>
             </div>
         </div>
 
-        <!-- Map Card -->
+        <!-- Mapa -->
         <div class="card">
-            <div class="card-header">
-                <h2><i class="fa-solid fa-earth-americas"></i> Mapa Interactivo por Departamento</h2>
-                <span style="font-size: 0.8rem; color: var(--text-secondary);" id="map-subtitle">Selección: Global</span>
-            </div>
+            <div class="card-header"><i class="fa-solid fa-earth-americas"></i> Mapa de Departamentos</div>
             <div class="card-body">
                 <div id="map"></div>
             </div>
         </div>
 
-        <!-- Chart Card -->
+        <!-- Gráfico con el canvas que busca tu main.js -->
         <div class="card">
-            <div class="card-header">
-                <h2><i class="fa-solid fa-chart-column"></i> Evolución Temporal de Desmonte</h2>
-                <span style="font-size: 0.8rem; color: var(--text-secondary);">Sumatoria por Período</span>
-            </div>
+            <div class="card-header"><i class="fa-solid fa-chart-column"></i> Estadísticas por Zona</div>
             <div class="card-body">
                 <div class="chart-container">
-                    <canvas id="timeChart"></canvas>
+                    <canvas id="myChart"></canvas>
                 </div>
             </div>
         </div>
 
-        <!-- Data Table Card -->
+        <!-- Tabla de Registros -->
         <div class="card table-section">
-            <div class="card-header">
-                <h2><i class="fa-solid fa-table"></i> Desglose Detallado por Departamento y Período</h2>
-            </div>
+            <div class="card-header"><i class="fa-solid fa-table"></i> Detalle de Registros</div>
             <div class="card-body" style="min-height: auto; padding: 0;">
                 <div class="table-wrapper">
-                    <table id="data-table">
+                    <table>
                         <thead>
                             <tr>
                                 <th>Provincia</th>
                                 <th>Departamento</th>
-                                <th>Período (Etiqueta)</th>
-                                <th style="text-align: right;">Superficie (ha)</th>
+                                <th>Período</th>
+                                <th style="text-align: right;">Área (ha)</th>
                             </tr>
                         </thead>
                         <tbody id="table-body">
@@ -273,167 +211,7 @@
 
     </div>
 
-    <!-- Script de Integración Dinámica -->
-    <script>
-        let rawGeoData = null;
-        let recordsData = [];
-        let map, geojsonLayer, chartInstance;
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            initMap();
-            initChart();
-            await loadData();
-        });
-
-        function initMap() {
-            map = L.map('map').setView([-24.8, -65.4], 6);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors'
-            }).addTo(map);
-        }
-
-        function initChart() {
-            const ctx = document.getElementById('timeChart').getContext('2d');
-            chartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: { labels: [], datasets: [{ label: 'Superficie (ha)', data: [], backgroundColor: '#2563eb', borderRadius: 4 }] },
-                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
-            });
-        }
-
-        async function loadData() {
-            try {
-                // Modificá estas rutas si tus archivos JSON tienen otros nombres o ubicaciones
-                const geoRes = await fetch('data/departamentos.json').catch(() => fetch('departamentos.json'));
-                if (geoRes && geoRes.ok) {
-                    rawGeoData = await geoRes.json();
-                }
-
-                const recRes = await fetch('data/registros.json').catch(() => fetch('registros.json'));
-                if (recRes && recRes.ok) {
-                    recordsData = await recRes.json();
-                }
-
-                // Carga de fallback si usás tu js/main.js
-                if (typeof window.mainData !== 'undefined') {
-                    recordsData = window.mainData;
-                }
-
-                setupGeoJSON();
-                populateFilters();
-                updateDashboard();
-
-            } catch (error) {
-                console.error("Error al cargar los datos:", error);
-                // Si la carga fetch falla por rutas relativas, mantenemos la escucha de js/main.js
-            }
-        }
-
-        function setupGeoJSON() {
-            if (!rawGeoData) return;
-            if (geojsonLayer) map.removeLayer(geojsonLayer);
-
-            geojsonLayer = L.geoJSON(rawGeoData, {
-                style: { fillColor: '#3b82f6', weight: 1, color: '#ffffff', fillOpacity: 0.6 },
-                onEachFeature: (feature, layer) => {
-                    const p = feature.properties;
-                    layer.bindPopup(`<b>${p.nam || p.departamento || 'Departamento'}</b><br>${p.Prov || p.provincia || ''}`);
-                }
-            }).addTo(map);
-
-            try { map.fitBounds(geojsonLayer.getBounds()); } catch(e) {}
-        }
-
-        function populateFilters() {
-            const provSelect = document.getElementById('select-prov');
-            const dptoSelect = document.getElementById('select-dpto');
-            const periodSelect = document.getElementById('select-period');
-
-            let provs = new Set();
-            let dptos = new Set();
-            let periods = new Set();
-
-            if (recordsData && recordsData.length > 0) {
-                recordsData.forEach(r => {
-                    if (r.provincia) provs.add(r.provincia);
-                    if (r.departamento) dptos.add(r.departamento);
-                    if (r.periodo || r.fecha || r.anio) periods.add(r.periodo || r.fecha || r.anio);
-                });
-            } else if (rawGeoData && rawGeoData.features) {
-                rawGeoData.features.forEach(f => {
-                    const p = f.properties;
-                    if (p.Prov || p.provincia) provs.add(p.Prov || p.provincia);
-                    if (p.nam || p.departamento) dptos.add(p.nam || p.departamento);
-                });
-            }
-
-            fillSelect(provSelect, provs, "Todas las Provincias");
-            fillSelect(dptoSelect, dptos, "Todos los Departamentos");
-            fillSelect(periodSelect, periods, "Todos los Períodos");
-        }
-
-        function fillSelect(selectElem, setValues, defaultText) {
-            selectElem.innerHTML = `<option value="ALL">${defaultText}</option>`;
-            Array.from(setValues).sort().forEach(val => {
-                const opt = document.createElement('option');
-                opt.value = val;
-                opt.textContent = val;
-                selectElem.appendChild(opt);
-            });
-        }
-
-        function onFilterChange() {
-            updateDashboard();
-        }
-
-        function resetFilters() {
-            document.getElementById('select-prov').value = 'ALL';
-            document.getElementById('select-dpto').value = 'ALL';
-            document.getElementById('select-period').value = 'ALL';
-            updateDashboard();
-        }
-
-        function updateDashboard() {
-            const selProv = document.getElementById('select-prov').value;
-            const selDpto = document.getElementById('select-dpto').value;
-            const selPeriod = document.getElementById('select-period').value;
-
-            let filtered = recordsData.filter(r => {
-                const mProv = selProv === 'ALL' || r.provincia === selProv;
-                const mDpto = selDpto === 'ALL' || r.departamento === selDpto;
-                const mPeriod = selPeriod === 'ALL' || (r.periodo || r.fecha || r.anio) == selPeriod;
-                return mProv && mDpto && mPeriod;
-            });
-
-            // Actualización de KPIs
-            const totalArea = filtered.reduce((acc, curr) => acc + Number(curr.area || curr.ha || curr.superficie || 0), 0);
-            document.getElementById('kpi-total-area').textContent = totalArea.toLocaleString('es-AR', { maximumFractionDigits: 2 });
-
-            const uniqueProvs = new Set(filtered.map(r => r.provincia)).size;
-            const uniqueDptos = new Set(filtered.map(r => r.departamento)).size;
-            document.getElementById('kpi-prov-count').textContent = selProv === 'ALL' ? uniqueProvs : 1;
-            document.getElementById('kpi-dpto-count').textContent = selDpto === 'ALL' ? uniqueDptos : 1;
-
-            // Rellenar Tabla
-            const tbody = document.getElementById('table-body');
-            tbody.innerHTML = '';
-            if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No se encontraron registros para la selección actual.</td></tr>';
-            } else {
-                filtered.slice(0, 100).forEach(r => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${r.provincia || '-'}</td>
-                        <td>${r.departamento || '-'}</td>
-                        <td>${r.periodo || r.fecha || r.anio || '-'}</td>
-                        <td style="text-align: right; font-weight: 600;">${Number(r.area || r.ha || r.superficie || 0).toLocaleString('es-AR')} ha</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            }
-        }
-    </script>
-    <!-- Si usás tu propia lógica JS alojada en js/main.js, la mantenemos como fallback al final -->
+    <!-- Script único ejecutado desde main.js -->
     <script src="js/main.js"></script>
 </body>
 </html>
