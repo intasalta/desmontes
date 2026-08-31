@@ -7,8 +7,8 @@ let map, geojsonLayer, myChart;
 async function loadData() {
     try {
         const [geoResponse, statsResponse] = await Promise.all([
-            fetch('data/departamentos.geojson'),
-            fetch('data/desmonte_stats.json')
+            fetch('./data/departamentos.geojson'),
+            fetch('./data/desmonte_stats.json')
         ]);
 
         if (!geoResponse.ok || !statsResponse.ok) {
