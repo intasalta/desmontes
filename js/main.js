@@ -3,7 +3,7 @@ let geojsonData = null;
 let statsData = [];
 let map, geojsonLayer, myChart;
 
-// 1. Cargar datos desde los archivos externos
+// 1. Cargar datos desde los archivos externos (rutas relativas explícitas con ./)
 async function loadData() {
     try {
         const [geoResponse, statsResponse] = await Promise.all([
@@ -11,8 +11,9 @@ async function loadData() {
             fetch('./data/desmonte_stats.json')
         ]);
 
+        // Verificar si la respuesta HTTP es exitosa (Status 200)
         if (!geoResponse.ok || !statsResponse.ok) {
-            throw new Error('No se pudieron obtener uno o ambos archivos de datos.');
+            throw new Error(`HTTP ${geoResponse.status} / ${statsResponse.status}: Archivos no encontrados en ./data/`);
         }
 
         geojsonData = await geoResponse.json();
@@ -21,10 +22,13 @@ async function loadData() {
         // Inicializar la aplicación tras cargar los datos
         initApp();
     } catch (error) {
-        console.error("Error al cargar los archivos de datos:", error);
+        console.error("Error al cargar los archivos:", error);
         const tbody = document.getElementById('table-body');
         if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#ef4444;">Error al cargar datos. Asegúrate de ejecutar la web en un servidor local (HTTP/HTTPS).</td></tr>';
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#ef4444; padding: 20px;">
+                <strong>Error al cargar datos:</strong> ${error.message}<br/>
+                <small style="color: #64748b;">Verifica que la carpeta <code>data/</code> exista en la raíz del repositorio y contenga los archivos .json y .geojson</small>
+            </td></tr>`;
         }
     }
 }
@@ -165,11 +169,9 @@ function updateDashboard() {
         return matchProv && matchDpto && matchPeriod;
     });
 
-    // Calcular y actualizar total en tarjeta
     const totalArea = filtered.reduce((acc, curr) => acc + curr.area, 0);
     document.getElementById('kpi-total').textContent = formatNumber(totalArea) + " ha";
 
-    // Actualizar Tabla y Gráficos
     updateTable(filtered);
     updateChart(filtered, prov);
     updateMapHighlight(prov, dpto);
@@ -185,7 +187,6 @@ function updateTable(rows) {
         return;
     }
 
-    // Muestra TODAS las filas filtradas
     rows.forEach(r => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -220,7 +221,7 @@ function updateChart(rows, selectedProv) {
     myChart.update();
 }
 
-// Destacar en Mapa
+// Destacar en Mapa y ajustar Zoom
 function updateMapHighlight(prov, dpto) {
     if (!geojsonLayer) return;
 
