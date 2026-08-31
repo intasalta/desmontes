@@ -103,11 +103,11 @@ function populateDepartments() {
     if (geojsonData && geojsonData.features) {
         geojsonData.features.forEach(f => {
             const props = f.properties;
-            const layerProv = props.fna || props.provincia || props.Prov || '';
-            const layerDpto = props.nam || props.departament || props.dpto || props.depto || '';
+            const layerProv = (props.fna || props.provincia || props.Prov || '').trim();
+            const layerDpto = (props.nam || props.departament || props.dpto || props.depto || '').trim();
 
-            if (selectedProv === 'ALL' || layerProv.toUpperCase().includes(selectedProv.toUpperCase())) {
-                if (layerDpto) dptoSet.add(layerDpto.trim());
+            if (selectedProv === 'ALL' || layerProv.toLowerCase() === selectedProv.toLowerCase()) {
+                if (layerDpto) dptoSet.add(layerDpto);
             }
         });
     }
@@ -161,7 +161,7 @@ function styleFeature(feature) {
 
 function onEachFeature(feature, layer) {
     const p = feature.properties;
-    const dptoName = p.nam || p.departament || p.dpto || p.depto || 'Departamento';
+    const dptoName = (p.nam || p.departament || p.dpto || p.depto || 'Departamento').trim();
     
     layer.bindPopup(`
         <strong>${dptoName}</strong><br/>
@@ -172,7 +172,15 @@ function onEachFeature(feature, layer) {
     layer.on('click', () => {
         const dptoSelect = document.getElementById('dpto-select');
         if (dptoSelect) {
-            dptoSelect.value = dptoName;
+            // Buscar si existe una opción equivalente exacta en el desplegable
+            const options = Array.from(dptoSelect.options);
+            const matchingOption = options.find(opt => opt.value.toLowerCase() === dptoName.toLowerCase());
+            
+            if (matchingOption) {
+                dptoSelect.value = matchingOption.value;
+            } else {
+                dptoSelect.value = dptoName;
+            }
             updateDashboard();
         }
     });
@@ -214,8 +222,8 @@ function updateDashboard() {
     const period = document.getElementById('period-select').value;
 
     const filtered = statsData.filter(d => {
-        const matchProv = (prov === 'ALL' || d.prov === prov);
-        const matchDpto = (dpto === 'ALL' || d.dpto === dpto);
+        const matchProv = (prov === 'ALL' || d.prov.toLowerCase() === prov.toLowerCase());
+        const matchDpto = (dpto === 'ALL' || d.dpto.toLowerCase() === dpto.toLowerCase());
         const matchPeriod = (period === 'ALL' || d.period === period);
         return matchProv && matchDpto && matchPeriod;
     });
@@ -281,11 +289,12 @@ function updateMapHighlight(prov, dpto) {
     geojsonLayer.eachLayer(layer => {
         const props = layer.feature.properties;
         
-        const layerProv = props.fna || props.provincia || props.Prov || '';
-        const layerDpto = props.nam || props.departament || props.dpto || props.depto || '';
+        const layerProv = (props.fna || props.provincia || props.Prov || '').trim();
+        const layerDpto = (props.nam || props.departament || props.dpto || props.depto || '').trim();
 
-        const matchProv = (prov === 'ALL' || layerProv.toUpperCase().includes(prov.toUpperCase()));
-        const matchDpto = (dpto === 'ALL' || layerDpto.toUpperCase().includes(dpto.toUpperCase()));
+        // Comparación exacta estricta (case-insensitive) para evitar seleccionar múltiples departamentos por coincidencias de subcadena
+        const matchProv = (prov === 'ALL' || layerProv.toLowerCase() === prov.toLowerCase());
+        const matchDpto = (dpto === 'ALL' || layerDpto.toLowerCase() === dpto.toLowerCase());
 
         if (matchProv && matchDpto) {
             layer.setStyle({ fillOpacity: 0.6, weight: 2, color: '#b91c1c', fillColor: '#ef4444' });
