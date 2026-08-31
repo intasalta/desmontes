@@ -1,9 +1,7 @@
-// Variables globales
 let geojsonData = null;
 let statsData = [];
 let map, geojsonLayer, myChart;
 
-// 1. Cargar datos con fallback
 async function loadData() {
     try {
         let geoResponse = await fetch('./data/departamentos.geojson');
@@ -13,7 +11,7 @@ async function loadData() {
         if (!statsResponse.ok) statsResponse = await fetch('data/desmonte_stats.json');
 
         if (!geoResponse.ok || !statsResponse.ok) {
-            throw new Error("No se pudieron cargar los archivos de datos desde la carpeta 'data'.");
+            throw new Error("No se pudieron cargar las fuentes JSON/GeoJSON.");
         }
 
         geojsonData = await geoResponse.json();
@@ -25,58 +23,47 @@ async function loadData() {
         const tbody = document.getElementById('table-body');
         if (tbody) {
             tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#ef4444; padding: 20px;">
-                <strong>Error de carga:</strong> ${error.message}
+                <strong>Error al cargar los datos:</strong> ${error.message}
             </td></tr>`;
         }
     }
 }
 
-// 2. Inicialización de App
 function initApp() {
     initDropdowns();
     initMap();
     initChart();
-    updateDashboard();
-
+    
+    // Event listeners de filtros
     document.getElementById('prov-select').addEventListener('change', onProvChange);
     document.getElementById('dpto-select').addEventListener('change', updateDashboard);
     document.getElementById('period-select').addEventListener('change', updateDashboard);
-}
-
-// Ordenamiento especial asegurando que "Hasta 1976" aparezca primero
-function getSortedPeriods(data) {
-    const rawPeriods = [...new Set(data.map(d => d.period))].filter(Boolean);
     
-    // Separar 'Hasta 1976' para forzar que sea el primero
-    const firstPeriod = rawPeriods.filter(p => p.toLowerCase().includes('1976'));
-    const otherPeriods = rawPeriods.filter(p => !p.toLowerCase().includes('1976')).sort();
+    // Event listener para el botón Restablecer Filtros
+    const btnReset = document.getElementById('btn-reset');
+    if (btnReset) {
+        btnReset.addEventListener('click', () => {
+            document.getElementById('prov-select').value = 'ALL';
+            populateDepartments();
+            document.getElementById('dpto-select').value = 'ALL';
+            document.getElementById('period-select').value = 'ALL';
+            updateDashboard();
+        });
+    }
 
-    return [...firstPeriod, ...otherPeriods];
+    updateDashboard();
 }
 
-// Inicializar desplegables
 function initDropdowns() {
     const provSelect = document.getElementById('prov-select');
-    provSelect.innerHTML = '<option value="ALL">Todas las provincias</option>';
-    
+    provSelect.innerHTML = '<option value="ALL">Todas las Provincias</option>';
     const provs = [...new Set(statsData.map(d => d.prov))].sort();
-    provs.forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p;
-        opt.textContent = p;
-        provSelect.appendChild(opt);
-    });
+    provs.forEach(p => provSelect.add(new Option(p, p)));
 
     const periodSelect = document.getElementById('period-select');
-    periodSelect.innerHTML = '<option value="ALL">Todos los periodos</option>';
-
-    const sortedPeriods = getSortedPeriods(statsData);
-    sortedPeriods.forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p;
-        opt.textContent = p;
-        periodSelect.appendChild(opt);
-    });
+    periodSelect.innerHTML = '<option value="ALL">Todos los Períodos</option>';
+    const periods = [...new Set(statsData.map(d => d.period))].sort();
+    periods.forEach(p => periodSelect.add(new Option(p, p)));
 
     populateDepartments();
 }
@@ -84,35 +71,16 @@ function initDropdowns() {
 function populateDepartments() {
     const selectedProv = document.getElementById('prov-select').value;
     const dptoSelect = document.getElementById('dpto-select');
-    dptoSelect.innerHTML = '<option value="ALL">Todos los departamentos</option>';
+    dptoSelect.innerHTML = '<option value="ALL">Todos los Departamentos</option>';
 
     const dptoSet = new Set();
-
     statsData.forEach(d => {
-        if (selectedProv === 'ALL' || d.prov.toLowerCase() === selectedProv.toLowerCase()) {
+        if (selectedProv === 'ALL' || d.prov === selectedProv) {
             if (d.dpto) dptoSet.add(d.dpto.trim());
         }
     });
 
-    if (geojsonData && geojsonData.features) {
-        geojsonData.features.forEach(f => {
-            const props = f.properties;
-            const layerProv = (props.fna || props.provincia || props.Prov || '').trim();
-            const layerDpto = (props.nam || props.departament || props.dpto || props.depto || '').trim();
-
-            if (selectedProv === 'ALL' || layerProv.toLowerCase() === selectedProv.toLowerCase()) {
-                if (layerDpto) dptoSet.add(layerDpto);
-            }
-        });
-    }
-
-    const sortedDptos = Array.from(dptoSet).sort();
-    sortedDptos.forEach(d => {
-        const opt = document.createElement('option');
-        opt.value = d;
-        opt.textContent = d;
-        dptoSelect.appendChild(opt);
-    });
+    Array.from(dptoSet).sort().forEach(d => dptoSelect.add(new Option(d, d)));
 }
 
 function onProvChange() {
@@ -121,59 +89,33 @@ function onProvChange() {
 }
 
 function formatNumber(num) {
-    return num.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return num.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
-// 3. Mapa Leaflet (Capa CartoDB Positron Estable)
 function initMap() {
     map = L.map('map').setView([-24.5, -62.0], 6);
-    
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; OpenStreetMap &copy; CARTO',
-        subdomains: 'abcd',
         maxZoom: 19
     }).addTo(map);
 
     if (geojsonData) {
         geojsonLayer = L.geoJSON(geojsonData, {
-            style: styleFeature,
-            onEachFeature: onEachFeature
+            style: () => ({ fillColor: '#ef4444', weight: 1, opacity: 1, color: '#b91c1c', fillOpacity: 0.2 }),
+            onEachFeature: (feature, layer) => {
+                const p = feature.properties;
+                const dptoName = (p.nam || p.departament || p.dpto || p.depto || 'Departamento').trim();
+                layer.bindPopup(`<strong>${dptoName}</strong><br/>Provincia: ${p.Prov || p.fna || p.provincia || 'N/D'}`);
+                layer.on('click', () => {
+                    const dptoSelect = document.getElementById('dpto-select');
+                    dptoSelect.value = dptoName;
+                    updateDashboard();
+                });
+            }
         }).addTo(map);
     }
 }
 
-function styleFeature(feature) {
-    return {
-        fillColor: '#ef4444',
-        weight: 1,
-        opacity: 1,
-        color: '#b91c1c',
-        fillOpacity: 0.2
-    };
-}
-
-function onEachFeature(feature, layer) {
-    const p = feature.properties;
-    const dptoName = (p.nam || p.departament || p.dpto || p.depto || 'Departamento').trim();
-    
-    layer.bindPopup(`
-        <strong>${dptoName}</strong><br/>
-        Provincia: ${p.Prov || p.fna || p.provincia || 'N/D'}
-    `);
-
-    layer.on('click', () => {
-        const dptoSelect = document.getElementById('dpto-select');
-        if (dptoSelect) {
-            const options = Array.from(dptoSelect.options);
-            const matchingOption = options.find(opt => opt.value.toLowerCase() === dptoName.toLowerCase());
-            
-            dptoSelect.value = matchingOption ? matchingOption.value : dptoName;
-            updateDashboard();
-        }
-    });
-}
-
-// 4. Gráfico Chart.js
 function initChart() {
     const ctx = document.getElementById('myChart').getContext('2d');
     myChart = new Chart(ctx, {
@@ -192,17 +134,12 @@ function initChart() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: { beginAtZero: true }
-            }
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
         }
     });
 }
 
-// 5. Actualizar Dashboard
 function updateDashboard() {
     const prov = document.getElementById('prov-select').value;
     const dpto = document.getElementById('dpto-select').value;
@@ -217,24 +154,21 @@ function updateDashboard() {
 
     // Actualizar KPIs
     const totalArea = filtered.reduce((acc, curr) => acc + curr.area, 0);
-    document.getElementById('kpi-total').textContent = formatNumber(totalArea) + " ha";
-
     const uniqueProvs = new Set(filtered.map(d => d.prov)).size;
     const uniqueDptos = new Set(filtered.map(d => d.dpto)).size;
-    document.getElementById('kpi-prov-count').textContent = uniqueProvs;
-    document.getElementById('kpi-dpto-count').textContent = uniqueDptos;
 
-    // Calcular período con mayor desmonte
-    let periodTotals = {};
-    filtered.forEach(d => {
-        periodTotals[d.period] = (periodTotals[d.period] || 0) + d.area;
-    });
-    let maxPeriod = '-';
-    let maxVal = 0;
-    Object.entries(periodTotals).forEach(([p, val]) => {
-        if (val > maxVal) { maxVal = val; maxPeriod = p; }
-    });
-    document.getElementById('kpi-max-period').textContent = maxPeriod !== '-' ? `${maxPeriod} (${formatNumber(maxVal)} ha)` : '-';
+    // Calcular período con mayor desmonte (Pico)
+    let peakPeriod = '-';
+    if (filtered.length > 0) {
+        const periodTotals = {};
+        filtered.forEach(d => { periodTotals[d.period] = (periodTotals[d.period] || 0) + d.area; });
+        peakPeriod = Object.keys(periodTotals).reduce((a, b) => periodTotals[a] > periodTotals[b] ? a : b);
+    }
+
+    document.getElementById('kpi-total').textContent = formatNumber(totalArea) + " ha";
+    document.getElementById('kpi-provs').textContent = uniqueProvs;
+    document.getElementById('kpi-dptos').textContent = uniqueDptos;
+    document.getElementById('kpi-pico').textContent = peakPeriod;
 
     updateTable(filtered);
     updateChart(filtered, prov, dpto);
@@ -255,7 +189,7 @@ function updateTable(rows) {
         tr.innerHTML = `
             <td><strong>${r.prov}</strong></td>
             <td>${r.dpto}</td>
-            <td><span style="background: #f1f5f9; padding: 2px 8px; border-radius: 4px; font-weight: 500;">${r.period}</span></td>
+            <td><span style="background: #f1f5f9; padding: 2px 8px; border-radius: 4px;">${r.period}</span></td>
             <td style="text-align: right; font-weight: 600; color: #ef4444;">${formatNumber(r.area)}</td>
         `;
         tbody.appendChild(tr);
@@ -264,7 +198,6 @@ function updateTable(rows) {
 
 function updateChart(rows, selectedProv, selectedDpto) {
     let grouped = {};
-
     if (selectedDpto !== 'ALL') {
         rows.forEach(r => { grouped[r.period] = (grouped[r.period] || 0) + r.area; });
     } else if (selectedProv === 'ALL') {
@@ -273,18 +206,8 @@ function updateChart(rows, selectedProv, selectedDpto) {
         rows.forEach(r => { grouped[r.dpto] = (grouped[r.dpto] || 0) + r.area; });
     }
 
-    // Si las claves del gráfico son períodos, asegurar que 'Hasta 1976' quede al inicio
-    let keys = Object.keys(grouped);
-    if (selectedDpto !== 'ALL') {
-        const first = keys.filter(k => k.toLowerCase().includes('1976'));
-        const rest = keys.filter(k => !k.toLowerCase().includes('1976')).sort();
-        keys = [...first, ...rest];
-    } else {
-        keys.sort();
-    }
-
-    myChart.data.labels = keys;
-    myChart.data.datasets[0].data = keys.map(k => grouped[k]);
+    myChart.data.labels = Object.keys(grouped).sort();
+    myChart.data.datasets[0].data = Object.keys(grouped).sort().map(k => grouped[k]);
     myChart.update();
 }
 
@@ -320,48 +243,6 @@ function updateMapHighlight(prov, dpto) {
     }
 }
 
-// 6. Restablecer Filtros
-function resetFilters() {
-    document.getElementById('prov-select').value = 'ALL';
-    populateDepartments();
-    document.getElementById('dpto-select').value = 'ALL';
-    document.getElementById('period-select').value = 'ALL';
-    updateDashboard();
-}
-
-// 7. Descarga en CSV de la Tabla
-function downloadCSV() {
-    const prov = document.getElementById('prov-select').value;
-    const dpto = document.getElementById('dpto-select').value;
-    const period = document.getElementById('period-select').value;
-
-    const filtered = statsData.filter(d => {
-        const matchProv = (prov === 'ALL' || d.prov.toLowerCase() === prov.toLowerCase());
-        const matchDpto = (dpto === 'ALL' || d.dpto.toLowerCase() === dpto.toLowerCase());
-        const matchPeriod = (period === 'ALL' || d.period === period);
-        return matchProv && matchDpto && matchPeriod;
-    });
-
-    if (filtered.length === 0) {
-        alert("No hay datos para exportar.");
-        return;
-    }
-
-    let csvContent = "data:text/csv;charset=utf-8,Provincia,Departamento,Periodo,Superficie (ha)\n";
-    filtered.forEach(row => {
-        csvContent += `"${row.prov}","${row.dpto}","${row.period}",${row.area}\n`;
-    });
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "reporte_desmonte.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
-// Inicio asegurado de carga
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', loadData);
 } else {
