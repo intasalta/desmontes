@@ -5,11 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard de Monitoreo de Desmonte</title>
     
-    <!-- Leaflet CSS & JS -->
+    <!-- Leaflet & Chart.js -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <!-- Font Awesome & Google Fonts -->
@@ -133,13 +131,13 @@
         .card-header h2 { font-size: 1rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
         .card-body { padding: 1rem; flex: 1; position: relative; min-height: 420px; }
 
-        #map { width: 100%; height: 100%; border-radius: var(--radius-md); }
+        #map { width: 100%; height: 100%; border-radius: var(--radius-md); z-index: 1; }
         .chart-container { position: relative; width: 100%; height: 100%; min-height: 400px; }
 
         .table-section { grid-column: 1 / -1; }
         .table-wrapper { overflow-x: auto; max-height: 350px; overflow-y: auto; }
         table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.875rem; }
-        th { background-color: #f8fafc; color: var(--text-secondary); font-weight: 600; padding: 0.75rem 1rem; position: sticky; top: 0; border-bottom: 1px solid var(--border-color); }
+        th { background-color: #f8fafc; color: var(--text-secondary); font-weight: 600; padding: 0.75rem 1rem; position: sticky; top: 0; border-bottom: 1px solid var(--border-color); z-index: 2; }
         td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); }
         tr:hover { background-color: #f1f5f9; }
 
@@ -158,21 +156,21 @@
     <div class="controls-bar">
         <div class="control-group">
             <label for="select-prov">Provincia</label>
-            <select id="select-prov" onchange="onProvinceChange()">
+            <select id="select-prov" onchange="onFilterChange()">
                 <option value="ALL">Todas las Provincias</option>
             </select>
         </div>
 
         <div class="control-group">
             <label for="select-dpto">Departamento</label>
-            <select id="select-dpto" onchange="onDepartmentChange()">
+            <select id="select-dpto" onchange="onFilterChange()">
                 <option value="ALL">Todos los Departamentos</option>
             </select>
         </div>
 
         <div class="control-group">
             <label for="select-period">Período / Etiqueta</label>
-            <select id="select-period" onchange="onPeriodChange()">
+            <select id="select-period" onchange="onFilterChange()">
                 <option value="ALL">Todos los Períodos (Acumulado)</option>
             </select>
         </div>
@@ -263,7 +261,11 @@
                                 <th style="text-align: right;">Superficie (ha)</th>
                             </tr>
                         </thead>
-                        <tbody id="table-body"></tbody>
+                        <tbody id="table-body">
+                            <tr>
+                                <td colspan="4" style="text-align: center;">Cargando datos...</td>
+                            </tr>
+                        </tbody>
                     </table>
                 </div>
             </div>
@@ -271,26 +273,16 @@
 
     </div>
 
+    <!-- Script de Integración Dinámica -->
     <script>
-        // Pegá tu objeto GeoJSON completo en esta variable:
-        const geojsonData = {
-            "type": "FeatureCollection",
-            "features": [
-                // [...] insertá aquí todos los features completos de tu archivo original
-            ]
-        };
-
-        // Estructura de datos para los registros temporales asociada a los departamentos
-        // Reemplazar o alimentar con tus datos reales de la base/relación
+        let rawGeoData = null;
         let recordsData = [];
-
         let map, geojsonLayer, chartInstance;
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             initMap();
             initChart();
-            populateFilters();
-            updateDashboard();
+            await loadData();
         });
 
         function initMap() {
@@ -298,136 +290,150 @@
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; OpenStreetMap contributors'
             }).addTo(map);
-
-            if (geojsonData.features && geojsonData.features.length > 0) {
-                geojsonLayer = L.geoJSON(geojsonData, {
-                    style: styleFeature,
-                    onEachFeature: onEachFeature
-                }).addTo(map);
-                map.fitBounds(geojsonLayer.getBounds());
-            }
-        }
-
-        function getColor(d) {
-            return d > 10000 ? '#800026' :
-                   d > 5000  ? '#BD0026' :
-                   d > 2000  ? '#E31A1C' :
-                   d > 1000  ? '#FC4E2A' :
-                   d > 500   ? '#FD8D3C' :
-                   d > 0     ? '#FEB24C' : '#FFEDA0';
-        }
-
-        function styleFeature(feature) {
-            return {
-                fillColor: getColor(feature.properties.area || 0),
-                weight: 1,
-                opacity: 1,
-                color: '#ffffff',
-                fillOpacity: 0.7
-            };
-        }
-
-        function onEachFeature(feature, layer) {
-            const props = feature.properties;
-            layer.bindPopup(`<b>${props.nam || 'Departamento'}</b><br>Provincia: ${props.Prov || 'N/A'}`);
-            layer.on({
-                click: (e) => {
-                    document.getElementById('select-prov').value = props.Prov || 'ALL';
-                    onProvinceChange();
-                    document.getElementById('select-dpto').value = props.nam || 'ALL';
-                    onDepartmentChange();
-                }
-            });
         }
 
         function initChart() {
             const ctx = document.getElementById('timeChart').getContext('2d');
             chartInstance = new Chart(ctx, {
                 type: 'bar',
-                data: {
-                    labels: ['2020', '2021', '2022', '2023', '2024'],
-                    datasets: [{
-                        label: 'Superficie Desmontada (ha)',
-                        data: [0, 0, 0, 0, 0],
-                        backgroundColor: '#2563eb',
-                        borderRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true } }
-                }
+                data: { labels: [], datasets: [{ label: 'Superficie (ha)', data: [], backgroundColor: '#2563eb', borderRadius: 4 }] },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
             });
+        }
+
+        async function loadData() {
+            try {
+                // Modificá estas rutas si tus archivos JSON tienen otros nombres o ubicaciones
+                const geoRes = await fetch('data/departamentos.json').catch(() => fetch('departamentos.json'));
+                if (geoRes && geoRes.ok) {
+                    rawGeoData = await geoRes.json();
+                }
+
+                const recRes = await fetch('data/registros.json').catch(() => fetch('registros.json'));
+                if (recRes && recRes.ok) {
+                    recordsData = await recRes.json();
+                }
+
+                // Carga de fallback si usás tu js/main.js
+                if (typeof window.mainData !== 'undefined') {
+                    recordsData = window.mainData;
+                }
+
+                setupGeoJSON();
+                populateFilters();
+                updateDashboard();
+
+            } catch (error) {
+                console.error("Error al cargar los datos:", error);
+                // Si la carga fetch falla por rutas relativas, mantenemos la escucha de js/main.js
+            }
+        }
+
+        function setupGeoJSON() {
+            if (!rawGeoData) return;
+            if (geojsonLayer) map.removeLayer(geojsonLayer);
+
+            geojsonLayer = L.geoJSON(rawGeoData, {
+                style: { fillColor: '#3b82f6', weight: 1, color: '#ffffff', fillOpacity: 0.6 },
+                onEachFeature: (feature, layer) => {
+                    const p = feature.properties;
+                    layer.bindPopup(`<b>${p.nam || p.departamento || 'Departamento'}</b><br>${p.Prov || p.provincia || ''}`);
+                }
+            }).addTo(map);
+
+            try { map.fitBounds(geojsonLayer.getBounds()); } catch(e) {}
         }
 
         function populateFilters() {
             const provSelect = document.getElementById('select-prov');
-            const provinces = [...new Set(geojsonData.features.map(f => f.properties.Prov).filter(Boolean))];
-            
-            provinces.sort().forEach(prov => {
+            const dptoSelect = document.getElementById('select-dpto');
+            const periodSelect = document.getElementById('select-period');
+
+            let provs = new Set();
+            let dptos = new Set();
+            let periods = new Set();
+
+            if (recordsData && recordsData.length > 0) {
+                recordsData.forEach(r => {
+                    if (r.provincia) provs.add(r.provincia);
+                    if (r.departamento) dptos.add(r.departamento);
+                    if (r.periodo || r.fecha || r.anio) periods.add(r.periodo || r.fecha || r.anio);
+                });
+            } else if (rawGeoData && rawGeoData.features) {
+                rawGeoData.features.forEach(f => {
+                    const p = f.properties;
+                    if (p.Prov || p.provincia) provs.add(p.Prov || p.provincia);
+                    if (p.nam || p.departamento) dptos.add(p.nam || p.departamento);
+                });
+            }
+
+            fillSelect(provSelect, provs, "Todas las Provincias");
+            fillSelect(dptoSelect, dptos, "Todos los Departamentos");
+            fillSelect(periodSelect, periods, "Todos los Períodos");
+        }
+
+        function fillSelect(selectElem, setValues, defaultText) {
+            selectElem.innerHTML = `<option value="ALL">${defaultText}</option>`;
+            Array.from(setValues).sort().forEach(val => {
                 const opt = document.createElement('option');
-                opt.value = prov;
-                opt.textContent = prov;
-                provSelect.appendChild(opt);
+                opt.value = val;
+                opt.textContent = val;
+                selectElem.appendChild(opt);
             });
         }
 
-        function onProvinceChange() {
-            const selectedProv = document.getElementById('select-prov').value;
-            const dptoSelect = document.getElementById('select-dpto');
-            dptoSelect.innerHTML = '<option value="ALL">Todos los Departamentos</option>';
-
-            const filteredFeatures = geojsonData.features.filter(f => selectedProv === 'ALL' || f.properties.Prov === selectedProv);
-            const dptos = [...new Set(filteredFeatures.map(f => f.properties.nam).filter(Boolean))];
-
-            dptos.sort().forEach(dpto => {
-                const opt = document.createElement('option');
-                opt.value = dpto;
-                opt.textContent = dpto;
-                dptoSelect.appendChild(opt);
-            });
-
+        function onFilterChange() {
             updateDashboard();
         }
 
-        function onDepartmentChange() { updateDashboard(); }
-        function onPeriodChange() { updateDashboard(); }
-
         function resetFilters() {
             document.getElementById('select-prov').value = 'ALL';
-            onProvinceChange();
+            document.getElementById('select-dpto').value = 'ALL';
             document.getElementById('select-period').value = 'ALL';
             updateDashboard();
         }
 
         function updateDashboard() {
-            const selectedProv = document.getElementById('select-prov').value;
-            const selectedDpto = document.getElementById('select-dpto').value;
+            const selProv = document.getElementById('select-prov').value;
+            const selDpto = document.getElementById('select-dpto').value;
+            const selPeriod = document.getElementById('select-period').value;
 
-            // Filtrado del GeoJSON
-            if (geojsonLayer) {
-                geojsonLayer.eachLayer(layer => {
-                    const props = layer.feature.properties;
-                    const matchProv = selectedProv === 'ALL' || props.Prov === selectedProv;
-                    const matchDpto = selectedDpto === 'ALL' || props.nam === selectedDpto;
+            let filtered = recordsData.filter(r => {
+                const mProv = selProv === 'ALL' || r.provincia === selProv;
+                const mDpto = selDpto === 'ALL' || r.departamento === selDpto;
+                const mPeriod = selPeriod === 'ALL' || (r.periodo || r.fecha || r.anio) == selPeriod;
+                return mProv && mDpto && mPeriod;
+            });
 
-                    if (matchProv && matchDpto) {
-                        layer.addTo(map);
-                    } else {
-                        map.removeLayer(layer);
-                    }
+            // Actualización de KPIs
+            const totalArea = filtered.reduce((acc, curr) => acc + Number(curr.area || curr.ha || curr.superficie || 0), 0);
+            document.getElementById('kpi-total-area').textContent = totalArea.toLocaleString('es-AR', { maximumFractionDigits: 2 });
+
+            const uniqueProvs = new Set(filtered.map(r => r.provincia)).size;
+            const uniqueDptos = new Set(filtered.map(r => r.departamento)).size;
+            document.getElementById('kpi-prov-count').textContent = selProv === 'ALL' ? uniqueProvs : 1;
+            document.getElementById('kpi-dpto-count').textContent = selDpto === 'ALL' ? uniqueDptos : 1;
+
+            // Rellenar Tabla
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No se encontraron registros para la selección actual.</td></tr>';
+            } else {
+                filtered.slice(0, 100).forEach(r => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${r.provincia || '-'}</td>
+                        <td>${r.departamento || '-'}</td>
+                        <td>${r.periodo || r.fecha || r.anio || '-'}</td>
+                        <td style="text-align: right; font-weight: 600;">${Number(r.area || r.ha || r.superficie || 0).toLocaleString('es-AR')} ha</td>
+                    `;
+                    tbody.appendChild(tr);
                 });
             }
-
-            // Actualización de KPIs (Valores base)
-            document.getElementById('kpi-prov-count').textContent = selectedProv === 'ALL' ? new Set(geojsonData.features.map(f => f.properties.Prov)).size : 1;
-            document.getElementById('kpi-dpto-count').textContent = selectedDpto === 'ALL' ? geojsonData.features.length : 1;
-            
-            // Subtítulo del mapa
-            document.getElementById('map-subtitle').textContent = `Selección: ${selectedProv} ${selectedDpto !== 'ALL' ? '/ ' + selectedDpto : ''}`;
         }
     </script>
+    <!-- Si usás tu propia lógica JS alojada en js/main.js, la mantenemos como fallback al final -->
+    <script src="js/main.js"></script>
 </body>
 </html>
