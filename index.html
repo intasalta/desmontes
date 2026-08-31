@@ -176,7 +176,49 @@
     </style>
 </head>
 <body>
+    <!-- OVERLAY DE CARGA GLOBAL -->
+    <div id="loading-overlay" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(15, 23, 42, 0.85);
+        backdrop-filter: blur(4px);
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: #ffffff;
+        font-family: 'Inter', sans-serif;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    ">
+        <div style="
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.2);
+            border-top: 5px solid #10b981;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1.25rem;
+        "></div>
+        <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem;">Cargando datos...</h2>
+        <p style="font-size: 0.875rem; color: #94a3b8;">Por favor, aguarde unos segundos</p>
+    </div>
 
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Clase para ocultar suavemente el cargador */
+        .loader-hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+    </style>
     <header>
         <div>
             <h1><i class="fa-solid fa-tree"></i> Dashboard de Monitoreo de Desmonte</h1>
