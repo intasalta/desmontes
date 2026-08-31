@@ -79,22 +79,51 @@ function initDropdowns() {
         opt.textContent = p;
         periodSelect.appendChild(opt);
     });
+
+    // Carga inicial del menú de departamentos
+    populateDepartments();
 }
 
-function onProvChange() {
+// Función encargada de llenar los departamentos unificando GeoJSON y Datos
+function populateDepartments() {
     const selectedProv = document.getElementById('prov-select').value;
     const dptoSelect = document.getElementById('dpto-select');
     dptoSelect.innerHTML = '<option value="ALL">Todos los departamentos</option>';
 
-    if (selectedProv !== 'ALL') {
-        const dptos = [...new Set(statsData.filter(d => d.prov === selectedProv).map(d => d.dpto))].sort();
-        dptos.forEach(d => {
-            const opt = document.createElement('option');
-            opt.value = d;
-            opt.textContent = d;
-            dptoSelect.appendChild(opt);
+    const dptoSet = new Set();
+
+    // 1. Obtener departamentos desde la tabla de estadísticas
+    statsData.forEach(d => {
+        if (selectedProv === 'ALL' || d.prov === selectedProv) {
+            if (d.dpto) dptoSet.add(d.dpto.trim());
+        }
+    });
+
+    // 2. Obtener departamentos desde el GeoJSON (Asegura departamentos como Santa Victoria)
+    if (geojsonData && geojsonData.features) {
+        geojsonData.features.forEach(f => {
+            const props = f.properties;
+            const layerProv = props.fna || props.provincia || props.Prov || '';
+            const layerDpto = props.nam || props.departament || props.dpto || props.depto || '';
+
+            if (selectedProv === 'ALL' || layerProv.toUpperCase().includes(selectedProv.toUpperCase())) {
+                if (layerDpto) dptoSet.add(layerDpto.trim());
+            }
         });
     }
+
+    // 3. Poblar el menú desplegable ordenado alfabéticamente
+    const sortedDptos = Array.from(dptoSet).sort();
+    sortedDptos.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d;
+        opt.textContent = d;
+        dptoSelect.appendChild(opt);
+    });
+}
+
+function onProvChange() {
+    populateDepartments();
     updateDashboard();
 }
 
@@ -132,10 +161,21 @@ function styleFeature(feature) {
 
 function onEachFeature(feature, layer) {
     const p = feature.properties;
+    const dptoName = p.nam || p.departament || p.dpto || p.depto || 'Departamento';
+    
     layer.bindPopup(`
-        <strong>${p.nam || p.depto || 'Departamento'}</strong><br/>
-        Provincia: ${p.Prov || p.fna || 'N/D'}
+        <strong>${dptoName}</strong><br/>
+        Provincia: ${p.Prov || p.fna || p.provincia || 'N/D'}
     `);
+
+    // Evento al hacer clic en el polígono en el mapa
+    layer.on('click', () => {
+        const dptoSelect = document.getElementById('dpto-select');
+        if (dptoSelect) {
+            dptoSelect.value = dptoName;
+            updateDashboard();
+        }
+    });
 }
 
 // 4. Inicializar Gráfico Chart.js
@@ -150,7 +190,8 @@ function initChart() {
                 data: [],
                 backgroundColor: 'rgba(239, 68, 68, 0.7)',
                 borderColor: 'rgba(185, 28, 28, 1)',
-                borderWidth: 1
+                borderWidth: 1,
+                borderRadius: 4
             }]
         },
         options: {
@@ -183,7 +224,7 @@ function updateDashboard() {
     document.getElementById('kpi-total').textContent = formatNumber(totalArea) + " ha";
 
     updateTable(filtered);
-    updateChart(filtered, prov);
+    updateChart(filtered, prov, dpto);
     updateMapHighlight(prov, dpto);
 }
 
@@ -192,7 +233,7 @@ function updateTable(rows) {
     tbody.innerHTML = '';
 
     if (rows.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No hay registros para este filtro</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 15px; color: #64748b;">No hay registros para este filtro</td></tr>';
         return;
     }
 
@@ -208,10 +249,15 @@ function updateTable(rows) {
     });
 }
 
-function updateChart(rows, selectedProv) {
+function updateChart(rows, selectedProv, selectedDpto) {
     let grouped = {};
 
-    if (selectedProv === 'ALL') {
+    // Si hay un departamento específico seleccionado, mostrar la evolución histórica (agrupado por período)
+    if (selectedDpto !== 'ALL') {
+        rows.forEach(r => {
+            grouped[r.period] = (grouped[r.period] || 0) + r.area;
+        });
+    } else if (selectedProv === 'ALL') {
         rows.forEach(r => {
             grouped[r.prov] = (grouped[r.prov] || 0) + r.area;
         });
@@ -221,8 +267,8 @@ function updateChart(rows, selectedProv) {
         });
     }
 
-    myChart.data.labels = Object.keys(grouped);
-    myChart.data.datasets[0].data = Object.values(grouped);
+    myChart.data.labels = Object.keys(grouped).sort();
+    myChart.data.datasets[0].data = Object.keys(grouped).sort().map(k => grouped[k]);
     myChart.update();
 }
 
@@ -236,7 +282,7 @@ function updateMapHighlight(prov, dpto) {
         const props = layer.feature.properties;
         
         const layerProv = props.fna || props.provincia || props.Prov || '';
-        const layerDpto = props.nam || props.departament || props.dpto || '';
+        const layerDpto = props.nam || props.departament || props.dpto || props.depto || '';
 
         const matchProv = (prov === 'ALL' || layerProv.toUpperCase().includes(prov.toUpperCase()));
         const matchDpto = (dpto === 'ALL' || layerDpto.toUpperCase().includes(dpto.toUpperCase()));
