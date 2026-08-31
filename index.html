@@ -37,15 +37,85 @@
         header {
             background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             color: #ffffff;
-            padding: 1.25rem 2rem;
+            padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
             box-shadow: var(--shadow-md);
+            flex-wrap: wrap;
+            gap: 1rem;
         }
-        header h1 { font-size: 1.4rem; font-weight: 700; display: flex; align-items: center; gap: 0.75rem; }
-        header h1 i { color: #10b981; }
-        .header-sub { font-size: 0.85rem; color: #94a3b8; margin-top: 0.25rem; }
+        header h1 { font-size: 1.3rem; font-weight: 700; display: flex; align-items: center; gap: 0.75rem; }
+        .header-sub { font-size: 0.8rem; color: #94a3b8; margin-top: 0.2rem; }
+
+        .header-authors {
+            text-align: right;
+            font-size: 0.8rem;
+            color: #cbd5e1;
+            border-left: 2px solid #334155;
+            padding-left: 1rem;
+        }
+        .header-authors strong { color: #10b981; font-weight: 600; }
+
+        /* BARRA DE NAVEGACIÓN ESTILO PESTAÑAS GITHUB */
+        .tabs-bar {
+            background-color: #0f172a;
+            display: flex;
+            padding: 0 2rem;
+            border-bottom: 1px solid var(--border-color);
+            gap: 0.5rem;
+        }
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            padding: 0.75rem 1.25rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            width: auto;
+        }
+        .tab-btn:hover { color: #ffffff; }
+        .tab-btn.active { color: #10b981; border-bottom-color: #10b981; }
+
+        /* CONTROL DE PESTAÑAS */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* ESTILOS DE LA SECCIÓN INFORMACIÓN */
+        .info-container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+        .info-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            padding: 2rem;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 1.5rem;
+        }
+        .info-card h2 { font-size: 1.3rem; color: #1e293b; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; border-bottom: 2px solid #f1f5f9; padding-bottom: 0.5rem; }
+        .info-card h3 { font-size: 1.05rem; color: #334155; margin: 1.2rem 0 0.5rem 0; }
+        .info-card p, .info-card li { font-size: 0.95rem; line-height: 1.6; color: var(--text-secondary); }
+        .info-card ul, .info-card ol { padding-left: 1.25rem; margin-bottom: 1rem; }
+        .info-card li { margin-bottom: 0.5rem; }
+        .authors-badge {
+            background-color: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            margin-top: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
 
         .controls-bar {
             background-color: var(--bg-card);
@@ -119,7 +189,6 @@
             gap: 1rem;
         }
 
-        /* Estilos diferenciados por tarjeta KPI */
         .kpi-total { border-left: 5px solid var(--accent-red); }
         .kpi-total .kpi-icon { background-color: #fef2f2; color: var(--accent-red); }
         .kpi-total .value { color: #b91c1c; }
@@ -176,6 +245,7 @@
     </style>
 </head>
 <body>
+
     <!-- OVERLAY DE CARGA GLOBAL -->
     <div id="loading-overlay" style="
         position: fixed;
@@ -212,13 +282,14 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        /* Clase para ocultar suavemente el cargador */
         .loader-hidden {
             opacity: 0;
             visibility: hidden;
             pointer-events: none;
         }
     </style>
+
+    <!-- HEADER CON AUTORES A LA DERECHA -->
     <header>
         <div>
             <h1>
@@ -227,115 +298,206 @@
             </h1>
             <div class="header-sub">INTA EEA SALTA - Análisis Geoespacial y Temporal (1976 - 2025)</div>
         </div>
+
+        <div class="header-authors">
+            <div><strong>Laboratorio Teledetección y SIG</strong></div>
+            <div>INTA EEA Salta</div>
+            <div style="font-size: 0.75rem; color: #94a3b8;">Yanina Noé, Laura Vale, Hernán Elena</div>
+        </div>
     </header>
 
-    <div class="controls-bar">
-        <div class="control-group">
-            <label for="prov-select">Provincia</label>
-            <select id="prov-select"><option value="ALL">Todas las Provincias</option></select>
+    <!-- PESTAÑAS NAVEGABLES -->
+    <div class="tabs-bar">
+        <button class="tab-btn active" onclick="switchTab('dashboard')">
+            <i class="fa-solid fa-chart-line"></i> Dashboard Interactivo
+        </button>
+        <button class="tab-btn" onclick="switchTab('info')">
+            <i class="fa-solid fa-circle-info"></i> Metodología e Información
+        </button>
+    </div>
+
+    <!-- PESTAÑA 1: DASHBOARD PRINCIPAL -->
+    <div id="tab-dashboard" class="tab-content active">
+        <div class="controls-bar">
+            <div class="control-group">
+                <label for="prov-select">Provincia</label>
+                <select id="prov-select"><option value="ALL">Todas las Provincias</option></select>
+            </div>
+
+            <div class="control-group">
+                <label for="dpto-select">Departamento</label>
+                <select id="dpto-select"><option value="ALL">Todos los Departamentos</option></select>
+            </div>
+
+            <div class="control-group">
+                <label for="period-select">Período / Etiqueta</label>
+                <select id="period-select"><option value="ALL">Todos los Períodos</option></select>
+            </div>
+
+            <div class="control-group" style="max-width: 220px;">
+                <button class="btn-reset" id="btn-reset">
+                    <i class="fa-solid fa-rotate-left"></i> Restablecer Filtros
+                </button>
+            </div>
         </div>
 
-        <div class="control-group">
-            <label for="dpto-select">Departamento</label>
-            <select id="dpto-select"><option value="ALL">Todos los Departamentos</option></select>
-        </div>
+        <div class="dashboard-container">
+            <div class="kpi-row">
+                <div class="kpi-card kpi-total">
+                    <div class="kpi-icon"><i class="fa-solid fa-ruler-combined"></i></div>
+                    <div class="kpi-content">
+                        <h3>Superficie Total</h3>
+                        <div class="value" id="kpi-total">0 ha</div>
+                    </div>
+                </div>
 
-        <div class="control-group">
-            <label for="period-select">Período / Etiqueta</label>
-            <select id="period-select"><option value="ALL">Todos los Períodos</option></select>
-        </div>
+                <div class="kpi-card kpi-provs">
+                    <div class="kpi-icon"><i class="fa-solid fa-map-location-dot"></i></div>
+                    <div class="kpi-content">
+                        <h3>Provincias</h3>
+                        <div class="value" id="kpi-provs">0</div>
+                    </div>
+                </div>
 
-        <div class="control-group" style="max-width: 220px;">
-            <button class="btn-reset" id="btn-reset">
-                <i class="fa-solid fa-rotate-left"></i> Restablecer Filtros
-            </button>
+                <div class="kpi-card kpi-dptos">
+                    <div class="kpi-icon"><i class="fa-solid fa-location-pin"></i></div>
+                    <div class="kpi-content">
+                        <h3>Departamentos</h3>
+                        <div class="value" id="kpi-dptos">0</div>
+                    </div>
+                </div>
+
+                <div class="kpi-card kpi-pico">
+                    <div class="kpi-icon"><i class="fa-solid fa-chart-line"></i></div>
+                    <div class="kpi-content">
+                        <h3>Pico de Desmonte</h3>
+                        <div class="value" id="kpi-pico">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title"><i class="fa-solid fa-map"></i> Mapa Interactivo</span>
+                </div>
+                <div class="card-body">
+                    <div id="map"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title"><i class="fa-solid fa-chart-column"></i> Evolución Temporal por Zona</span>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="myChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card table-section">
+                <div class="card-header">
+                    <span class="card-title"><i class="fa-solid fa-table"></i> Detalle de Registros</span>
+                    <button class="btn-download" id="btn-export-csv">
+                        <i class="fa-solid fa-file-csv"></i> Descargar Tabla (CSV)
+                    </button>
+                </div>
+                <div class="card-body" style="min-height: auto; padding: 0;">
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Provincia</th>
+                                    <th>Departamento</th>
+                                    <th>Período</th>
+                                    <th style="text-align: right;">Área (ha)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body">
+                                <tr><td colspan="4" style="text-align: center;">Cargando datos...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="dashboard-container">
+    <!-- PESTAÑA 2: INFORMACIÓN Y METODOLOGÍA -->
+    <div id="tab-info" class="tab-content">
+        <div class="info-container">
+            
+            <div class="info-card">
+                <h2><i class="fa-solid fa-earth-americas" style="color: #10b981;"></i> Introducción y Objetivos</h2>
+                <p>La cartografía sistemática de las áreas deforestadas constituye la base fundamental para múltiples investigaciones aplicadas, tales como el relevamiento y seguimiento de cultivos, la evaluación de variables ecosistémicas clave para el monitoreo ambiental y social de los bosques nativos, el análisis del avance de la frontera agropecuaria y la dinámica del uso de la tierra.</p>
+                <br>
+                <p>En este contexto, el <strong>Laboratorio de Teledetección y SIG del INTA EEA Salta</strong> realiza este monitoreo continuo e ininterrumpido desde el año 2005. Los resultados cartográficos resultantes se transfieren de manera abierta y espacialmente explícita a la comunidad a través de la Infraestructura de Datos Espaciales <strong>INTA Digital Geo</strong> en formato vectorial (shapefile / KML).</p>
+                <br>
+                <p>Asimismo, este esfuerzo cartográfico colabora activamente con el <strong>Proyecto de Monitoreo de Deforestación en el Chaco Seco</strong>, espacio de trabajo interinstitucional integrado por:</p>
+                <ul>
+                    <li>Red Agroforestal Chaco Argentina (REDAF)</li>
+                    <li>Laboratorio de Análisis Regional y Teledetección (LART-FAUBA)</li>
+                    <li>Facultad de Agronomía de la Universidad de Buenos Aires (FAUBA)</li>
+                    <li>Laboratorio de Teledetección y SIG del INTA EEA Salta</li>
+                </ul>
+                <p><strong>Objetivo Principal:</strong> Brindar información cartográfica actualizada, accesible y espacialmente explícita sobre la dinámica y distribución espacial de los desmontes ocurridos en el Noroeste Argentino (NOA).</p>
+            </div>
 
-        <div class="kpi-row">
-            <div class="kpi-card kpi-total">
-                <div class="kpi-icon"><i class="fa-solid fa-ruler-combined"></i></div>
-                <div class="kpi-content">
-                    <h3>Superficie Total</h3>
-                    <div class="value" id="kpi-total">0 ha</div>
+            <div class="info-card">
+                <h2><i class="fa-solid fa-gear" style="color: #3b82f6;"></i> Metodología de Monitoreo mediante Google Earth Engine</h2>
+                
+                <h3>1. Área de Estudio y Selección de Sensores</h3>
+                <p>El área de monitoreo comprende las provincias de Salta, Jujuy, Tucumán, Santiago del Estero y Catamarca, focalizándose sobre el ecotono agropecuario y la frontera de transformación del NOA. Para garantizar la continuidad histórica y la resolución espacial, se emplean imágenes de las misiones Landsat (5 TM, 7 ETM+, 8 OLI, 9 OLI-2) y Sentinel-2 (MSI).</p>
+
+                <h3>2. Procesamiento Multi-temporal en Google Earth Engine (GEE)</h3>
+                <p>A partir de la plataforma cloud computing Google Earth Engine, se optimiza el flujo de procesamiento masivo de datos ópticos mediante:</p>
+                <ul>
+                    <li><strong>Filtrado y Máscara de Nubes:</strong> Se seleccionan escenas con una cobertura de nubes inferior al 15% (<code>CLOUDY_PIXEL_PERCENTAGE &lt; 15</code>), priorizando ventanas de invierno y transiciones seco/húmedo (mayo a diciembre), extendiéndose a verano para validación de cobertura agrícola.</li>
+                    <li><strong>Generación de Mosaicos Temporales:</strong> Se construyen composiciones multitemporales anuales e interanuales utilizando el reductor de mediana estadística (<code>median()</code>), eliminando nubes residuales o sombras.</li>
+                    <li><strong>Combinación de Bandas:</strong> Se utilizan composiciones en Color Real (RGB: B4, B3, B2 en Sentinel-2) y Falso Color Infrarrojo para contrastar la pérdida de cobertura vegetal nativa frente a suelo desnudo.</li>
+                </ul>
+
+                <h3>3. Mapeo y Verificación Espacial</h3>
+                <ul>
+                    <li><strong>Sistemática de Inspección:</strong> Se genera una grilla vectorial de inspección visual de 30 km x 30 km sobre el área de interés.</li>
+                    <li><strong>Detección de Cambios y Vectorización:</strong> Comparación pancrónica e interanual de los mosaicos para delimitar y validar vectorialmente parcelas con desmonte seco o empuje.</li>
+                </ul>
+
+                <h3>4. Exportación y Disponibilización</h3>
+                <p>Los datos vectoriales procesados y validados para cada período anual se exportan desde la nube hacia Google Drive en formatos estándar (KML / Shapefile), listos para su posterior publicación en el portal INTA Digital Geo.</p>
+
+                <div class="authors-badge">
+                    <i class="fa-solid fa-users" style="font-size: 1.5rem; color: #10b981;"></i>
+                    <div>
+                        <strong style="color: #1e293b; display: block;">Autores del Proyecto:</strong>
+                        <span style="color: #475569;">Yanina Noé, Laura Vale y Hernán Elena</span> — Laboratorio de Teledetección y SIG, INTA EEA Salta.
+                    </div>
                 </div>
             </div>
 
-            <div class="kpi-card kpi-provs">
-                <div class="kpi-icon"><i class="fa-solid fa-map-location-dot"></i></div>
-                <div class="kpi-content">
-                    <h3>Provincias</h3>
-                    <div class="value" id="kpi-provs">0</div>
-                </div>
-            </div>
-
-            <div class="kpi-card kpi-dptos">
-                <div class="kpi-icon"><i class="fa-solid fa-location-pin"></i></div>
-                <div class="kpi-content">
-                    <h3>Departamentos</h3>
-                    <div class="value" id="kpi-dptos">0</div>
-                </div>
-            </div>
-
-            <div class="kpi-card kpi-pico">
-                <div class="kpi-icon"><i class="fa-solid fa-chart-line"></i></div>
-                <div class="kpi-content">
-                    <h3>Pico de Desmonte</h3>
-                    <div class="value" id="kpi-pico">-</div>
-                </div>
-            </div>
         </div>
-
-        <div class="card">
-            <div class="card-header">
-                <span class="card-title"><i class="fa-solid fa-map"></i> Mapa Interactivo</span>
-            </div>
-            <div class="card-body">
-                <div id="map"></div>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
-                <span class="card-title"><i class="fa-solid fa-chart-column"></i> Evolución Temporal por Zona</span>
-            </div>
-            <div class="card-body">
-                <div class="chart-container">
-                    <canvas id="myChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <div class="card table-section">
-            <div class="card-header">
-                <span class="card-title"><i class="fa-solid fa-table"></i> Detalle de Registros</span>
-                <button class="btn-download" id="btn-export-csv">
-                    <i class="fa-solid fa-file-csv"></i> Descargar Tabla (CSV)
-                </button>
-            </div>
-            <div class="card-body" style="min-height: auto; padding: 0;">
-                <div class="table-wrapper">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Provincia</th>
-                                <th>Departamento</th>
-                                <th>Período</th>
-                                <th style="text-align: right;">Área (ha)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="table-body">
-                            <tr><td colspan="4" style="text-align: center;">Cargando datos...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
     </div>
 
     <script src="js/main.js"></script>
+    <script>
+        // Función para cambiar de pestaña dinámicamente
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            if (tabId === 'dashboard') {
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+                document.getElementById('tab-dashboard').classList.add('active');
+                // Recalcular tamaño de Leaflet para prevenir fallas al renderizar el mapa
+                if (typeof map !== 'undefined' && map) {
+                    setTimeout(() => map.invalidateSize(), 200);
+                }
+            } else {
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.getElementById('tab-info').classList.add('active');
+            }
+        }
+    </script>
 </body>
 </html>
