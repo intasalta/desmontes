@@ -219,6 +219,7 @@ function updateDashboard() {
     updateMapHighlight(prov, dpto);
 }
 
+
 function updateTable(rows) {
     const tbody = document.getElementById('table-body');
     tbody.innerHTML = '';
@@ -228,18 +229,7 @@ function updateTable(rows) {
         return;
     }
 
-    // Copiar y ordenar el array para que "Hasta 1976" quede primero
-    const sortedRows = [...rows].sort((a, b) => {
-        const periodA = String(a.period || '');
-        const periodB = String(b.period || '');
-
-        if (periodA.toLowerCase().includes('hasta 1976')) return -1;
-        if (periodB.toLowerCase().includes('hasta 1976')) return 1;
-
-        return periodA.localeCompare(periodB, undefined, { numeric: true, sensitivity: 'base' });
-    });
-
-    sortedRows.forEach(r => {
+    rows.forEach(r => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><strong>${r.prov}</strong></td>
@@ -250,6 +240,7 @@ function updateTable(rows) {
         tbody.appendChild(tr);
     });
 }
+
 
 // Función del gráfico con ordenamiento donde "Hasta 1976" va PRIMERO
 function updateChart(rows, selectedProv, selectedDpto) {
