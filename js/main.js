@@ -132,8 +132,8 @@ function styleFeature(feature) {
 function onEachFeature(feature, layer) {
     const p = feature.properties;
     layer.bindPopup(`
-        <strong>${p.nam || p.departamento || 'Departamento'}</strong><br/>
-        Provincia: ${p.fna || p.provincia || 'N/D'}
+        <strong>${p.nam || p.depto || 'Departamento'}</strong><br/>
+        Provincia: ${p.Prov || p.fna || 'N/D'}
     `);
 }
 
@@ -233,8 +233,10 @@ function updateMapHighlight(prov, dpto) {
 
     geojsonLayer.eachLayer(layer => {
         const props = layer.feature.properties;
-        const layerProv = props.fna || props.provincia || '';
-        const layerDpto = props.nam || props.departamento || '';
+        
+        // Incluye props.Prov para que coincida con la propiedad 'Prov' de departamentos.geojson
+        const layerProv = props.fna || props.provincia || props.Prov || '';
+        const layerDpto = props.nam || props.departament || props.dpto || '';
 
         const matchProv = (prov === 'ALL' || layerProv.toUpperCase().includes(prov.toUpperCase()));
         const matchDpto = (dpto === 'ALL' || layerDpto.toUpperCase().includes(dpto.toUpperCase()));
