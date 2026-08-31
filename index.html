@@ -3,16 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitoreo de Desmonte</title>
-    
-    <!-- Leaflet CSS & JS -->
+    <title>Dashboard de Monitoreo de Desmonte</title>
+
+    <!-- Leaflet & Chart.js -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <!-- Google Fonts -->
+
+    <!-- Font Awesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
@@ -21,32 +20,19 @@
             --bg-card: #ffffff;
             --text-primary: #0f172a;
             --text-secondary: #475569;
-            --accent-primary: #2563eb;
-            --accent-danger: #ef4444;
+            --accent-primary: #ef4444;
             --border-color: #e2e8f0;
-            --shadow-sm: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
-            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
             --radius-lg: 12px;
             --radius-md: 8px;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-main);
-            color: var(--text-primary);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', system-ui, sans-serif; background-color: var(--bg-main); color: var(--text-primary); min-height: 100vh; display: flex; flex-direction: column; }
 
         header {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             color: #ffffff;
             padding: 1.25rem 2rem;
             display: flex;
@@ -54,20 +40,9 @@
             align-items: center;
             box-shadow: var(--shadow-md);
         }
-
-        header h1 {
-            font-size: 1.35rem;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .header-sub {
-            font-size: 0.85rem;
-            color: #94a3b8;
-            margin-top: 0.2rem;
-        }
+        header h1 { font-size: 1.4rem; font-weight: 700; display: flex; align-items: center; gap: 0.75rem; }
+        header h1 i { color: #10b981; }
+        .header-sub { font-size: 0.85rem; color: #94a3b8; margin-top: 0.25rem; }
 
         .controls-bar {
             background-color: var(--bg-card);
@@ -75,71 +50,37 @@
             border-bottom: 1px solid var(--border-color);
             display: flex;
             flex-wrap: wrap;
-            gap: 1.25rem;
+            gap: 1.5rem;
             align-items: flex-end;
         }
+        .control-group { display: flex; flex-direction: column; gap: 0.35rem; flex: 1; min-width: 180px; }
+        .control-group label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); }
 
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.35rem;
-        }
-
-        .control-group label {
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--text-secondary);
-        }
-
-        select {
-            padding: 0.5rem 0.85rem;
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border-color);
-            background-color: #f1f5f9;
-            color: var(--text-primary);
-            font-size: 0.875rem;
-            font-weight: 500;
-            outline: none;
-            transition: all 0.2s;
-            cursor: pointer;
-            min-width: 190px;
-        }
-
-        select:focus {
-            border-color: var(--accent-primary);
-            background-color: #ffffff;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-        }
-
-        .btn {
+        select, button {
             padding: 0.5rem 1rem;
             border-radius: var(--radius-md);
-            font-size: 0.85rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            transition: all 0.2s;
             border: 1px solid var(--border-color);
             background-color: #f1f5f9;
             color: var(--text-primary);
+            font-size: 0.9rem;
+            font-weight: 500;
+            outline: none;
+            width: 100%;
         }
 
-        .btn:hover {
+        .btn-reset {
             background-color: #e2e8f0;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: background-color 0.2s ease;
         }
 
-        .btn-download {
-            background-color: #10b981;
-            color: #ffffff;
-            border: none;
-        }
-
-        .btn-download:hover {
-            background-color: #059669;
+        .btn-reset:hover {
+            background-color: #cbd5e1;
         }
 
         .dashboard-container {
@@ -153,16 +94,16 @@
         .kpi-row {
             grid-column: 1 / -1;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 1.25rem;
         }
-
         .kpi-card {
             background-color: var(--bg-card);
             border-radius: var(--radius-lg);
             padding: 1.25rem;
             border: 1px solid var(--border-color);
             box-shadow: var(--shadow-sm);
+            border-left: 5px solid var(--accent-primary);
             display: flex;
             align-items: center;
             gap: 1rem;
@@ -172,26 +113,16 @@
             width: 48px;
             height: 48px;
             border-radius: var(--radius-md);
+            background-color: #fef2f2;
+            color: var(--accent-primary);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
-            background-color: #f1f5f9;
+            font-size: 1.25rem;
         }
 
-        .kpi-content h3 {
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            color: var(--text-secondary);
-            margin-bottom: 0.25rem;
-        }
-
-        .kpi-content .value {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
+        .kpi-content h3 { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 0.25rem; }
+        .kpi-content .value { font-size: 1.6rem; font-weight: 800; color: #b91c1c; }
 
         .card {
             background-color: var(--bg-card);
@@ -202,91 +133,27 @@
             flex-direction: column;
             overflow: hidden;
         }
+        .card-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border-color); font-size: 1rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+        .card-body { padding: 1rem; flex: 1; position: relative; min-height: 400px; }
 
-        .card-header {
-            padding: 1rem 1.25rem;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+        #map { width: 100%; height: 100%; border-radius: var(--radius-md); z-index: 1; }
+        .chart-container { position: relative; width: 100%; height: 100%; min-height: 380px; }
 
-        .card-header h2 {
-            font-size: 0.95rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
+        .table-section { grid-column: 1 / -1; }
+        .table-wrapper { overflow-x: auto; max-height: 350px; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.875rem; }
+        th { background-color: #f8fafc; color: var(--text-secondary); font-weight: 600; padding: 0.75rem 1rem; position: sticky; top: 0; border-bottom: 1px solid var(--border-color); z-index: 2; }
+        td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); }
+        tr:hover { background-color: #f1f5f9; }
 
-        .card-body {
-            padding: 1rem;
-            flex: 1;
-            position: relative;
-            min-height: 400px;
-        }
-
-        #map {
-            width: 100%;
-            height: 100%;
-            border-radius: var(--radius-md);
-            z-index: 1;
-        }
-
-        .chart-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            min-height: 380px;
-        }
-
-        .table-section {
-            grid-column: 1 / -1;
-        }
-
-        .table-wrapper {
-            overflow-x: auto;
-            max-height: 360px;
-            overflow-y: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: left;
-            font-size: 0.875rem;
-        }
-
-        th {
-            background-color: #f8fafc;
-            color: var(--text-secondary);
-            font-weight: 600;
-            padding: 0.75rem 1rem;
-            position: sticky;
-            top: 0;
-            border-bottom: 1px solid var(--border-color);
-            z-index: 2;
-        }
-
-        td {
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        tr:hover {
-            background-color: #f1f5f9;
-        }
-
-        @media (max-width: 1024px) {
-            .dashboard-container { grid-template-columns: 1fr; }
-        }
+        @media (max-width: 900px) { .dashboard-container { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 
     <header>
         <div>
-            <h1>🌳 Dashboard de Monitoreo de Desmonte</h1>
+            <h1><i class="fa-solid fa-tree"></i> Dashboard de Monitoreo de Desmonte</h1>
             <div class="header-sub">Análisis Geoespacial y Temporal de Superficie Afectada (Hectáreas)</div>
         </div>
     </header>
@@ -313,17 +180,19 @@
             </select>
         </div>
 
-        <button class="btn" id="btn-reset" onclick="resetFilters()">
-            🔄 Restablecer Filtros
-        </button>
+        <div class="control-group" style="max-width: 220px;">
+            <button class="btn-reset" id="btn-reset">
+                <i class="fa-solid fa-rotate-left"></i> Restablecer Filtros
+            </button>
+        </div>
     </div>
 
     <div class="dashboard-container">
 
-        <!-- KPI Cards con Emojis -->
+        <!-- Fila de Tarjetas KPI -->
         <div class="kpi-row">
             <div class="kpi-card">
-                <div class="kpi-icon">📐</div>
+                <div class="kpi-icon"><i class="fa-solid fa-ruler-combined"></i></div>
                 <div class="kpi-content">
                     <h3>Superficie Total</h3>
                     <div class="value" id="kpi-total">0 ha</div>
@@ -331,45 +200,41 @@
             </div>
 
             <div class="kpi-card">
-                <div class="kpi-icon">🗺️</div>
+                <div class="kpi-icon"><i class="fa-solid fa-map-location-dot"></i></div>
                 <div class="kpi-content">
                     <h3>Provincias</h3>
-                    <div class="value" id="kpi-prov-count">0</div>
+                    <div class="value" id="kpi-provs">0</div>
                 </div>
             </div>
 
             <div class="kpi-card">
-                <div class="kpi-icon">📍</div>
+                <div class="kpi-icon"><i class="fa-solid fa-location-pin"></i></div>
                 <div class="kpi-content">
                     <h3>Departamentos</h3>
-                    <div class="value" id="kpi-dpto-count">0</div>
+                    <div class="value" id="kpi-dptos">0</div>
                 </div>
             </div>
 
             <div class="kpi-card">
-                <div class="kpi-icon">📅</div>
+                <div class="kpi-icon"><i class="fa-solid fa-calendar-days"></i></div>
                 <div class="kpi-content">
                     <h3>Pico de Desmonte</h3>
-                    <div class="value" id="kpi-max-period">-</div>
+                    <div class="value" id="kpi-pico">-</div>
                 </div>
             </div>
         </div>
 
-        <!-- Map Card -->
+        <!-- Mapa Interactivo -->
         <div class="card">
-            <div class="card-header">
-                <h2>🗺️ Mapa Interactivo</h2>
-            </div>
+            <div class="card-header"><i class="fa-solid fa-map"></i> Mapa Interactivo</div>
             <div class="card-body">
                 <div id="map"></div>
             </div>
         </div>
 
-        <!-- Chart Card -->
+        <!-- Gráfico de Evolución -->
         <div class="card">
-            <div class="card-header">
-                <h2>📊 Evolución Temporal por Zona</h2>
-            </div>
+            <div class="card-header"><i class="fa-solid fa-chart-column"></i> Evolución Temporal por Zona</div>
             <div class="card-body">
                 <div class="chart-container">
                     <canvas id="myChart"></canvas>
@@ -377,14 +242,9 @@
             </div>
         </div>
 
-        <!-- Data Table Card -->
+        <!-- Tabla de Detalle -->
         <div class="card table-section">
-            <div class="card-header">
-                <h2>📋 Desglose Detallado</h2>
-                <button class="btn btn-download" onclick="downloadCSV()">
-                    📥 Descargar Tabla (CSV)
-                </button>
-            </div>
+            <div class="card-header"><i class="fa-solid fa-table"></i> Detalle de Registros</div>
             <div class="card-body" style="min-height: auto; padding: 0;">
                 <div class="table-wrapper">
                     <table>
@@ -393,10 +253,13 @@
                                 <th>Provincia</th>
                                 <th>Departamento</th>
                                 <th>Período</th>
-                                <th style="text-align: right;">Superficie (ha)</th>
+                                <th style="text-align: right;">Área (ha)</th>
                             </tr>
                         </thead>
                         <tbody id="table-body">
+                            <tr>
+                                <td colspan="4" style="text-align: center;">Cargando datos...</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -405,7 +268,6 @@
 
     </div>
 
-    <!-- Script de Funcionalidad Principal -->
-    <script src="main.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>
