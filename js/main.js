@@ -34,12 +34,10 @@ function initApp() {
     initMap();
     initChart();
     
-    // Event listeners de filtros
     document.getElementById('prov-select').addEventListener('change', onProvChange);
     document.getElementById('dpto-select').addEventListener('change', updateDashboard);
     document.getElementById('period-select').addEventListener('change', updateDashboard);
     
-    // Event listener para el botón Restablecer Filtros
     const btnReset = document.getElementById('btn-reset');
     if (btnReset) {
         btnReset.addEventListener('click', () => {
@@ -49,6 +47,11 @@ function initApp() {
             document.getElementById('period-select').value = 'ALL';
             updateDashboard();
         });
+    }
+
+    const btnExport = document.getElementById('btn-export-csv');
+    if (btnExport) {
+        btnExport.addEventListener('click', downloadCSV);
     }
 
     updateDashboard();
@@ -75,7 +78,7 @@ function populateDepartments() {
 
     const dptoSet = new Set();
     statsData.forEach(d => {
-        if (selectedProv === 'ALL' || d.prov === selectedProv) {
+        if (selectedProv === 'ALL' || d.prov.toLowerCase() === selectedProv.toLowerCase()) {
             if (d.dpto) dptoSet.add(d.dpto.trim());
         }
     });
@@ -92,10 +95,11 @@ function formatNumber(num) {
     return num.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
+// Mapa con capa gratuita OpenStreetMap libre de API KEY
 function initMap() {
     map = L.map('map').setView([-24.5, -62.0], 6);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap &copy; CARTO',
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
         maxZoom: 19
     }).addTo(map);
 
@@ -105,8 +109,20 @@ function initMap() {
             onEachFeature: (feature, layer) => {
                 const p = feature.properties;
                 const dptoName = (p.nam || p.departament || p.dpto || p.depto || 'Departamento').trim();
-                layer.bindPopup(`<strong>${dptoName}</strong><br/>Provincia: ${p.Prov || p.fna || p.provincia || 'N/D'}`);
+                const provName = (p.Prov || p.fna || p.provincia || '').trim();
+
+                layer.bindPopup(`<strong>${dptoName}</strong><br/>Provincia: ${provName || 'N/D'}`);
+                
                 layer.on('click', () => {
+                    if (provName) {
+                        const provSelect = document.getElementById('prov-select');
+                        const matchingProv = Array.from(provSelect.options).find(opt => opt.value.toLowerCase() === provName.toLowerCase());
+                        if (matchingProv) {
+                            provSelect.value = matchingProv.value;
+                            populateDepartments();
+                        }
+                    }
+
                     const dptoSelect = document.getElementById('dpto-select');
                     dptoSelect.value = dptoName;
                     updateDashboard();
@@ -152,12 +168,10 @@ function updateDashboard() {
         return matchProv && matchDpto && matchPeriod;
     });
 
-    // Actualizar KPIs
     const totalArea = filtered.reduce((acc, curr) => acc + curr.area, 0);
     const uniqueProvs = new Set(filtered.map(d => d.prov)).size;
     const uniqueDptos = new Set(filtered.map(d => d.dpto)).size;
 
-    // Calcular período con mayor desmonte (Pico)
     let peakPeriod = '-';
     if (filtered.length > 0) {
         const periodTotals = {};
@@ -196,6 +210,7 @@ function updateTable(rows) {
     });
 }
 
+// Función del gráfico con ordenamiento donde "Hasta 1976" va PRIMERO
 function updateChart(rows, selectedProv, selectedDpto) {
     let grouped = {};
     if (selectedDpto !== 'ALL') {
@@ -206,11 +221,19 @@ function updateChart(rows, selectedProv, selectedDpto) {
         rows.forEach(r => { grouped[r.dpto] = (grouped[r.dpto] || 0) + r.area; });
     }
 
-    myChart.data.labels = Object.keys(grouped).sort();
-    myChart.data.datasets[0].data = Object.keys(grouped).sort().map(k => grouped[k]);
+    // Ordenar claves dejando "Hasta 1976" al inicio
+    const sortedKeys = Object.keys(grouped).sort((a, b) => {
+        if (a.toLowerCase().includes('hasta 1976')) return -1;
+        if (b.toLowerCase().includes('hasta 1976')) return 1;
+        return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+    });
+
+    myChart.data.labels = sortedKeys;
+    myChart.data.datasets[0].data = sortedKeys.map(k => grouped[k]);
     myChart.update();
 }
 
+// Resaltado de polígonos validando Provincia Y Departamento simultáneamente
 function updateMapHighlight(prov, dpto) {
     if (!geojsonLayer) return;
 
@@ -222,9 +245,10 @@ function updateMapHighlight(prov, dpto) {
         const layerProv = (props.fna || props.provincia || props.Prov || '').trim();
         const layerDpto = (props.nam || props.departament || props.dpto || props.depto || '').trim();
 
-        const matchProv = (prov === 'ALL' || layerProv.toLowerCase() === prov.toLowerCase());
+        const matchProv = (prov === 'ALL' || layerProv.toLowerCase().includes(prov.toLowerCase()) || prov.toLowerCase().includes(layerProv.toLowerCase()));
         const matchDpto = (dpto === 'ALL' || layerDpto.toLowerCase() === dpto.toLowerCase());
 
+        // Se exige coincidencia estricta de departamento Y provincia para evitar departamentos homónimos
         if (matchProv && matchDpto) {
             layer.setStyle({ fillOpacity: 0.6, weight: 2, color: '#b91c1c', fillColor: '#ef4444' });
             if (layer.getBounds) {
@@ -241,6 +265,38 @@ function updateMapHighlight(prov, dpto) {
     } else if (prov === 'ALL' && dpto === 'ALL') {
         map.setView([-24.5, -62.0], 6);
     }
+}
+
+// Función de Descarga en CSV
+function downloadCSV() {
+    const prov = document.getElementById('prov-select').value;
+    const dpto = document.getElementById('dpto-select').value;
+    const period = document.getElementById('period-select').value;
+
+    const filtered = statsData.filter(d => {
+        const matchProv = (prov === 'ALL' || d.prov.toLowerCase() === prov.toLowerCase());
+        const matchDpto = (dpto === 'ALL' || d.dpto.toLowerCase() === dpto.toLowerCase());
+        const matchPeriod = (period === 'ALL' || d.period === period);
+        return matchProv && matchDpto && matchPeriod;
+    });
+
+    if (filtered.length === 0) {
+        alert("No hay registros para exportar con los filtros seleccionados.");
+        return;
+    }
+
+    let csvContent = "data:text/csv;charset=utf-8,Provincia,Departamento,Periodo,Area (ha)\n";
+    filtered.forEach(r => {
+        csvContent += `"${r.prov}","${r.dpto}","${r.period}",${r.area}\n`;
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `desmonte_filtrado_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 if (document.readyState === 'loading') {
