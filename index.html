@@ -3,264 +3,431 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Desmonte</title>
-    <!-- CSS Leaflet / Chart.js -->
+    <title>Dashboard de Monitoreo de Desmonte</title>
+    
+    <!-- Leaflet CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Font Awesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
     <style>
         :root {
-            --bg-color: #f8fafc;
-            --card-bg: #ffffff;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --primary: #ef4444;
+            --bg-main: #f8fafc;
+            --bg-card: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --accent-primary: #2563eb;
             --border-color: #e2e8f0;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --radius-lg: 12px;
+            --radius-md: 8px;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            padding: 24px;
-            line-height: 1.5;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-main); color: var(--text-primary); min-height: 100vh; display: flex; flex-direction: column; }
 
         header {
-            margin-bottom: 24px;
-        }
-
-        h1 {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: #0f172a;
-        }
-
-        p.subtitle {
-            color: var(--text-muted);
-            font-size: 0.95rem;
-        }
-
-        .filters-panel {
-            background: var(--card-bg);
-            padding: 16px 20px;
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #ffffff;
+            padding: 1.25rem 2rem;
             display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-            margin-bottom: 24px;
+            justify-content: space-between;
             align-items: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            box-shadow: var(--shadow-md);
         }
+        header h1 { font-size: 1.4rem; font-weight: 700; display: flex; align-items: center; gap: 0.75rem; }
+        header h1 i { color: #10b981; }
+        .header-sub { font-size: 0.85rem; color: #94a3b8; margin-top: 0.25rem; }
 
-        .filter-group {
+        .controls-bar {
+            background-color: var(--bg-card);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border-color);
             display: flex;
-            flex-direction: column;
-            gap: 6px;
-            flex: 1;
-            min-width: 200px;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            align-items: center;
         }
-
-        .filter-group label {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--text-muted);
-        }
+        .control-group { display: flex; flex-direction: column; gap: 0.35rem; }
+        .control-group label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); }
 
         select {
-            padding: 10px 12px;
-            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-md);
             border: 1px solid var(--border-color);
-            background-color: #fff;
-            color: var(--text-main);
-            font-size: 0.95rem;
+            background-color: #f1f5f9;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-weight: 500;
             outline: none;
-            transition: border-color 0.2s;
+            min-width: 180px;
         }
 
-        select:focus {
-            border-color: var(--primary);
-        }
-
-        .grid-layout {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-            margin-bottom: 24px;
-        }
-
-        @media (max-width: 900px) {
-            .grid-layout {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .card {
-            background: var(--card-bg);
-            border-radius: 12px;
+        .reset-btn {
+            margin-left: auto;
+            padding: 0.5rem 1rem;
+            background-color: #f1f5f9;
             border: 1px solid var(--border-color);
-            padding: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-
-        .kpi-card {
-            grid-column: 1 / -1;
+            border-radius: var(--radius-md);
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
-            border-left: 5px solid var(--primary);
+            gap: 0.5rem;
+        }
+        .reset-btn:hover { background-color: #e2e8f0; color: var(--text-primary); }
+
+        .dashboard-container {
+            padding: 1.5rem 2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            flex: 1;
         }
 
-        .kpi-title {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+        .kpi-row {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
         }
-
-        .kpi-value {
-            font-size: 2.2rem;
-            font-weight: 800;
-            color: #b91c1c;
-        }
-
-        .card-header {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 16px;
-            color: #0f172a;
-        }
-
-        #map {
-            height: 380px;
-            width: 100%;
-            border-radius: 8px;
-            z-index: 1;
-        }
-
-        .chart-container {
-            position: relative;
-            height: 380px;
-            width: 100%;
-        }
-
-        .table-container {
-            max-height: 400px;
-            overflow-y: auto;
-            border-radius: 8px;
+        .kpi-card {
+            background-color: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 1.25rem;
             border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
         }
+        .kpi-icon { width: 50px; height: 50px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
+        .kpi-icon.area { background-color: #fef2f2; color: #ef4444; }
+        .kpi-icon.prov { background-color: #eff6ff; color: #3b82f6; }
+        .kpi-icon.dpto { background-color: #f0fdf4; color: #10b981; }
+        .kpi-icon.period { background-color: #faf5ff; color: #a855f7; }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: left;
-            font-size: 0.9rem;
-        }
+        .kpi-content h3 { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 0.25rem; }
+        .kpi-content .value { font-size: 1.35rem; font-weight: 700; color: var(--text-primary); }
+        .kpi-content .unit { font-size: 0.8rem; color: var(--text-secondary); }
 
-        th {
-            background-color: #f1f5f9;
-            padding: 12px 16px;
-            font-weight: 600;
-            color: #334155;
-            position: sticky;
-            top: 0;
-            z-index: 2;
+        .card {
+            background-color: var(--bg-card);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
+        .card-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .card-header h2 { font-size: 1rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+        .card-body { padding: 1rem; flex: 1; position: relative; min-height: 420px; }
 
-        td {
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--border-color);
-        }
+        #map { width: 100%; height: 100%; border-radius: var(--radius-md); }
+        .chart-container { position: relative; width: 100%; height: 100%; min-height: 400px; }
 
-        tr:hover {
-            background-color: #f8fafc;
-        }
+        .table-section { grid-column: 1 / -1; }
+        .table-wrapper { overflow-x: auto; max-height: 350px; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.875rem; }
+        th { background-color: #f8fafc; color: var(--text-secondary); font-weight: 600; padding: 0.75rem 1rem; position: sticky; top: 0; border-bottom: 1px solid var(--border-color); }
+        td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); }
+        tr:hover { background-color: #f1f5f9; }
+
+        @media (max-width: 1024px) { .dashboard-container { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>Dashboard de Monitoreo de Desmonte</h1>
-        <p class="subtitle">Visualización espacial y estadística de la pérdida de cobertura forestal</p>
+        <div>
+            <h1><i class="fa-solid fa-tree"></i> Dashboard de Monitoreo de Desmonte</h1>
+            <div class="header-sub">Análisis Geoespacial y Temporal de Superficie Afectada (Hectáreas)</div>
+        </div>
     </header>
 
-    <!-- Filtros -->
-    <section class="filters-panel">
-        <div class="filter-group">
-            <label for="prov-select">Provincia</label>
-            <select id="prov-select">
-                <option value="ALL">Todas las provincias</option>
+    <div class="controls-bar">
+        <div class="control-group">
+            <label for="select-prov">Provincia</label>
+            <select id="select-prov" onchange="onProvinceChange()">
+                <option value="ALL">Todas las Provincias</option>
             </select>
         </div>
-        <div class="filter-group">
-            <label for="dpto-select">Departamento</label>
-            <select id="dpto-select">
-                <option value="ALL">Todos los departamentos</option>
-            </select>
-        </div>
-        <div class="filter-group">
-            <label for="period-select">Periodo</label>
-            <select id="period-select">
-                <option value="ALL">Todos los periodos</option>
-            </select>
-        </div>
-    </section>
 
-    <!-- Tarjeta KPI Total -->
-    <div class="card kpi-card" style="margin-bottom: 24px;">
-        <div>
-            <div class="kpi-title">Total Área Desmontada</div>
-            <div class="kpi-value" id="kpi-total">0,00 ha</div>
+        <div class="control-group">
+            <label for="select-dpto">Departamento</label>
+            <select id="select-dpto" onchange="onDepartmentChange()">
+                <option value="ALL">Todos los Departamentos</option>
+            </select>
         </div>
+
+        <div class="control-group">
+            <label for="select-period">Período / Etiqueta</label>
+            <select id="select-period" onchange="onPeriodChange()">
+                <option value="ALL">Todos los Períodos (Acumulado)</option>
+            </select>
+        </div>
+
+        <button class="reset-btn" onclick="resetFilters()">
+            <i class="fa-solid fa-rotate-right"></i> Restablecer Filtros
+        </button>
     </div>
 
-    <!-- Layout Grid: Mapa y Gráfico -->
-    <div class="grid-layout">
-        <div class="card">
-            <div class="card-header">Mapa de Departamentos</div>
-            <div id="map"></div>
-        </div>
-        <div class="card">
-            <div class="card-header">Estadísticas por Zona</div>
-            <div class="chart-container">
-                <canvas id="myChart"></canvas>
+    <div class="dashboard-container">
+
+        <!-- KPI Cards -->
+        <div class="kpi-row">
+            <div class="kpi-card">
+                <div class="kpi-icon area"><i class="fa-solid fa-chart-area"></i></div>
+                <div class="kpi-content">
+                    <h3>Superficie Total</h3>
+                    <div class="value" id="kpi-total-area">0</div>
+                    <div class="unit">hectáreas (ha)</div>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon prov"><i class="fa-solid fa-map"></i></div>
+                <div class="kpi-content">
+                    <h3>Provincias Select.</h3>
+                    <div class="value" id="kpi-prov-count">0</div>
+                    <div class="unit">en el filtro activo</div>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon dpto"><i class="fa-solid fa-location-dot"></i></div>
+                <div class="kpi-content">
+                    <h3>Departamentos</h3>
+                    <div class="value" id="kpi-dpto-count">0</div>
+                    <div class="unit">con registros</div>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon period"><i class="fa-solid fa-calendar-days"></i></div>
+                <div class="kpi-content">
+                    <h3>Pico de Desmonte</h3>
+                    <div class="value" id="kpi-max-period">-</div>
+                    <div class="unit" id="kpi-max-period-val">0 ha</div>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Tabla de Registros -->
-    <div class="card">
-        <div class="card-header">Detalle de Registros</div>
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Provincia</th>
-                        <th>Departamento</th>
-                        <th>Periodo</th>
-                        <th style="text-align: right;">Área (ha)</th>
-                    </tr>
-                </thead>
-                <tbody id="table-body">
-                    <tr>
-                        <td colspan="4" style="text-align:center;">Cargando datos...</td>
-                    </tr>
-                </tbody>
-            </table>
+        <!-- Map Card -->
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fa-solid fa-earth-americas"></i> Mapa Interactivo por Departamento</h2>
+                <span style="font-size: 0.8rem; color: var(--text-secondary);" id="map-subtitle">Selección: Global</span>
+            </div>
+            <div class="card-body">
+                <div id="map"></div>
+            </div>
         </div>
+
+        <!-- Chart Card -->
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fa-solid fa-chart-column"></i> Evolución Temporal de Desmonte</h2>
+                <span style="font-size: 0.8rem; color: var(--text-secondary);">Sumatoria por Período</span>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="timeChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Table Card -->
+        <div class="card table-section">
+            <div class="card-header">
+                <h2><i class="fa-solid fa-table"></i> Desglose Detallado por Departamento y Período</h2>
+            </div>
+            <div class="card-body" style="min-height: auto; padding: 0;">
+                <div class="table-wrapper">
+                    <table id="data-table">
+                        <thead>
+                            <tr>
+                                <th>Provincia</th>
+                                <th>Departamento</th>
+                                <th>Período (Etiqueta)</th>
+                                <th style="text-align: right;">Superficie (ha)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
     </div>
 
-    <!-- Script Principal -->
-    <script src="js/main.js"></script>
+    <script>
+        // Pegá tu objeto GeoJSON completo en esta variable:
+        const geojsonData = {
+            "type": "FeatureCollection",
+            "features": [
+                // [...] insertá aquí todos los features completos de tu archivo original
+            ]
+        };
+
+        // Estructura de datos para los registros temporales asociada a los departamentos
+        // Reemplazar o alimentar con tus datos reales de la base/relación
+        let recordsData = [];
+
+        let map, geojsonLayer, chartInstance;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            initChart();
+            populateFilters();
+            updateDashboard();
+        });
+
+        function initMap() {
+            map = L.map('map').setView([-24.8, -65.4], 6);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            if (geojsonData.features && geojsonData.features.length > 0) {
+                geojsonLayer = L.geoJSON(geojsonData, {
+                    style: styleFeature,
+                    onEachFeature: onEachFeature
+                }).addTo(map);
+                map.fitBounds(geojsonLayer.getBounds());
+            }
+        }
+
+        function getColor(d) {
+            return d > 10000 ? '#800026' :
+                   d > 5000  ? '#BD0026' :
+                   d > 2000  ? '#E31A1C' :
+                   d > 1000  ? '#FC4E2A' :
+                   d > 500   ? '#FD8D3C' :
+                   d > 0     ? '#FEB24C' : '#FFEDA0';
+        }
+
+        function styleFeature(feature) {
+            return {
+                fillColor: getColor(feature.properties.area || 0),
+                weight: 1,
+                opacity: 1,
+                color: '#ffffff',
+                fillOpacity: 0.7
+            };
+        }
+
+        function onEachFeature(feature, layer) {
+            const props = feature.properties;
+            layer.bindPopup(`<b>${props.nam || 'Departamento'}</b><br>Provincia: ${props.Prov || 'N/A'}`);
+            layer.on({
+                click: (e) => {
+                    document.getElementById('select-prov').value = props.Prov || 'ALL';
+                    onProvinceChange();
+                    document.getElementById('select-dpto').value = props.nam || 'ALL';
+                    onDepartmentChange();
+                }
+            });
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('timeChart').getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['2020', '2021', '2022', '2023', '2024'],
+                    datasets: [{
+                        label: 'Superficie Desmontada (ha)',
+                        data: [0, 0, 0, 0, 0],
+                        backgroundColor: '#2563eb',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+
+        function populateFilters() {
+            const provSelect = document.getElementById('select-prov');
+            const provinces = [...new Set(geojsonData.features.map(f => f.properties.Prov).filter(Boolean))];
+            
+            provinces.sort().forEach(prov => {
+                const opt = document.createElement('option');
+                opt.value = prov;
+                opt.textContent = prov;
+                provSelect.appendChild(opt);
+            });
+        }
+
+        function onProvinceChange() {
+            const selectedProv = document.getElementById('select-prov').value;
+            const dptoSelect = document.getElementById('select-dpto');
+            dptoSelect.innerHTML = '<option value="ALL">Todos los Departamentos</option>';
+
+            const filteredFeatures = geojsonData.features.filter(f => selectedProv === 'ALL' || f.properties.Prov === selectedProv);
+            const dptos = [...new Set(filteredFeatures.map(f => f.properties.nam).filter(Boolean))];
+
+            dptos.sort().forEach(dpto => {
+                const opt = document.createElement('option');
+                opt.value = dpto;
+                opt.textContent = dpto;
+                dptoSelect.appendChild(opt);
+            });
+
+            updateDashboard();
+        }
+
+        function onDepartmentChange() { updateDashboard(); }
+        function onPeriodChange() { updateDashboard(); }
+
+        function resetFilters() {
+            document.getElementById('select-prov').value = 'ALL';
+            onProvinceChange();
+            document.getElementById('select-period').value = 'ALL';
+            updateDashboard();
+        }
+
+        function updateDashboard() {
+            const selectedProv = document.getElementById('select-prov').value;
+            const selectedDpto = document.getElementById('select-dpto').value;
+
+            // Filtrado del GeoJSON
+            if (geojsonLayer) {
+                geojsonLayer.eachLayer(layer => {
+                    const props = layer.feature.properties;
+                    const matchProv = selectedProv === 'ALL' || props.Prov === selectedProv;
+                    const matchDpto = selectedDpto === 'ALL' || props.nam === selectedDpto;
+
+                    if (matchProv && matchDpto) {
+                        layer.addTo(map);
+                    } else {
+                        map.removeLayer(layer);
+                    }
+                });
+            }
+
+            // Actualización de KPIs (Valores base)
+            document.getElementById('kpi-prov-count').textContent = selectedProv === 'ALL' ? new Set(geojsonData.features.map(f => f.properties.Prov)).size : 1;
+            document.getElementById('kpi-dpto-count').textContent = selectedDpto === 'ALL' ? geojsonData.features.length : 1;
+            
+            // Subtítulo del mapa
+            document.getElementById('map-subtitle').textContent = `Selección: ${selectedProv} ${selectedDpto !== 'ALL' ? '/ ' + selectedDpto : ''}`;
+        }
+    </script>
 </body>
 </html>
