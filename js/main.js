@@ -3,31 +3,40 @@ let geojsonData = null;
 let statsData = [];
 let map, geojsonLayer, myChart;
 
-// 1. Cargar datos desde los archivos externos (rutas relativas explícitas con ./)
+// 1. Cargar datos con diagnóstico detallado
 async function loadData() {
     try {
-        const [geoResponse, statsResponse] = await Promise.all([
-            fetch('./data/departamentos.geojson'),
-            fetch('./data/desmonte_stats.json')
-        ]);
+        const geoResponse = await fetch('./data/departamentos.geojson');
+        const statsResponse = await fetch('./data/desmonte_stats.json');
 
-        // Verificar si la respuesta HTTP es exitosa (Status 200)
-        if (!geoResponse.ok || !statsResponse.ok) {
-            throw new Error(`HTTP ${geoResponse.status} / ${statsResponse.status}: Archivos no encontrados en ./data/`);
+        if (!geoResponse.ok) {
+            throw new Error(`No se encontró './data/departamentos.geojson' (HTTP ${geoResponse.status})`);
+        }
+        if (!statsResponse.ok) {
+            throw new Error(`No se encontró './data/desmonte_stats.json' (HTTP ${statsResponse.status})`);
         }
 
-        geojsonData = await geoResponse.json();
-        statsData = await statsResponse.json();
+        // Intento de parseo de JSON
+        try {
+            geojsonData = await geoResponse.json();
+        } catch (e) {
+            throw new Error("El archivo 'data/departamentos.geojson' NO es un JSON válido. Asegúrate de borrar 'const ... =' si existe en la primera línea.");
+        }
 
-        // Inicializar la aplicación tras cargar los datos
+        try {
+            statsData = await statsResponse.json();
+        } catch (e) {
+            throw new Error("El archivo 'data/desmonte_stats.json' NO es un JSON válido. Asegúrate de borrar 'const ... =' si existe en la primera línea.");
+        }
+
+        // Inicializar la aplicación
         initApp();
     } catch (error) {
-        console.error("Error al cargar los archivos:", error);
+        console.error("Error al cargar datos:", error);
         const tbody = document.getElementById('table-body');
         if (tbody) {
             tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#ef4444; padding: 20px;">
-                <strong>Error al cargar datos:</strong> ${error.message}<br/>
-                <small style="color: #64748b;">Verifica que la carpeta <code>data/</code> exista en la raíz del repositorio y contenga los archivos .json y .geojson</small>
+                <strong>Error de carga:</strong> ${error.message}
             </td></tr>`;
         }
     }
@@ -40,7 +49,6 @@ function initApp() {
     initChart();
     updateDashboard();
 
-    // Event listeners para los filtros
     document.getElementById('prov-select').addEventListener('change', onProvChange);
     document.getElementById('dpto-select').addEventListener('change', updateDashboard);
     document.getElementById('period-select').addEventListener('change', updateDashboard);
@@ -88,16 +96,17 @@ function onProvChange() {
     updateDashboard();
 }
 
-// Formateador de números
 function formatNumber(num) {
     return num.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-// 3. Inicializar Mapa Leaflet
+// 3. Inicializar Mapa Leaflet con capa funcional
 function initMap() {
     map = L.map('map').setView([-24.5, -62.0], 6);
+    
+    // Cambiado a CartoDB Positron (reemplazo gratuito y estable)
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
         subdomains: 'abcd',
         maxZoom: 19
     }).addTo(map);
@@ -123,8 +132,8 @@ function styleFeature(feature) {
 function onEachFeature(feature, layer) {
     const p = feature.properties;
     layer.bindPopup(`
-        <strong>${p.nam || 'Departamento'}</strong><br/>
-        Provincia: ${p.fna || 'N/D'}
+        <strong>${p.nam || p.departamento || 'Departamento'}</strong><br/>
+        Provincia: ${p.fna || p.provincia || 'N/D'}
     `);
 }
 
@@ -156,7 +165,7 @@ function initChart() {
     });
 }
 
-// 5. Actualizar la aplicación (Dashboard)
+// 5. Actualizar Dashboard
 function updateDashboard() {
     const prov = document.getElementById('prov-select').value;
     const dpto = document.getElementById('dpto-select').value;
@@ -177,7 +186,6 @@ function updateDashboard() {
     updateMapHighlight(prov, dpto);
 }
 
-// 6. Actualización de Tabla
 function updateTable(rows) {
     const tbody = document.getElementById('table-body');
     tbody.innerHTML = '';
@@ -199,7 +207,6 @@ function updateTable(rows) {
     });
 }
 
-// Actualización de Gráfico
 function updateChart(rows, selectedProv) {
     let grouped = {};
 
@@ -213,15 +220,11 @@ function updateChart(rows, selectedProv) {
         });
     }
 
-    const labels = Object.keys(grouped);
-    const data = Object.values(grouped);
-
-    myChart.data.labels = labels;
-    myChart.data.datasets[0].data = data;
+    myChart.data.labels = Object.keys(grouped);
+    myChart.data.datasets[0].data = Object.values(grouped);
     myChart.update();
 }
 
-// Destacar en Mapa y ajustar Zoom
 function updateMapHighlight(prov, dpto) {
     if (!geojsonLayer) return;
 
@@ -231,7 +234,7 @@ function updateMapHighlight(prov, dpto) {
     geojsonLayer.eachLayer(layer => {
         const props = layer.feature.properties;
         const layerProv = props.fna || props.provincia || '';
-        const layerDpto = props.nam || props.departament || '';
+        const layerDpto = props.nam || props.departamento || '';
 
         const matchProv = (prov === 'ALL' || layerProv.toUpperCase().includes(prov.toUpperCase()));
         const matchDpto = (dpto === 'ALL' || layerDpto.toUpperCase().includes(dpto.toUpperCase()));
@@ -254,5 +257,4 @@ function updateMapHighlight(prov, dpto) {
     }
 }
 
-// Ejecutar al cargar la página
 window.onload = loadData;
